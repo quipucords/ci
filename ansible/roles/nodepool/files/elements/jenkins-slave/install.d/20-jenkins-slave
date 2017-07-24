@@ -1,0 +1,31 @@
+#!/bin/bash
+if [ ${DIB_DEBUG_TRACE:-0} -gt 0 ]; then
+    set -x
+fi
+set -euo pipefail
+
+useradd --user-group --create-home --home-dir /home/jenkins jenkins
+echo jenkins | passwd --stdin jenkins
+
+cat > /etc/sudoers.d/00-jenkins <<EOF
+%jenkins ALL=(ALL) NOPASSWD: ALL
+EOF
+
+mkdir -p /home/jenkins/.ssh
+
+PUBLIC_SSH_KEY_PATH=/tmp/in_target.d/jenkins-public-ssh-key
+if [ ! -f "${PUBLIC_SSH_KEY_PATH}" ]; then
+    die "Can not find the Jenkins public SSH key"
+fi
+
+cp "${PUBLIC_SSH_KEY_PATH}" /home/jenkins/.ssh/authorized_keys
+
+chmod 700 /home/jenkins/.ssh
+chmod 644 /home/jenkins/.ssh/authorized_keys
+chown -R jenkins:jenkins /home/jenkins
+
+# Nodepool expects this dir to exist when it boots slaves.  Nodepool writes
+# environment info to this dir. We set the mode to 0777 so that any user can
+# access this env info.
+mkdir /etc/nodepool
+chmod 0777 /etc/nodepool

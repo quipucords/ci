@@ -1,0 +1,12 @@
+[Unit]
+Description=Nodepoold Service
+After=syslog.target network.target
+
+[Service]
+Type=simple
+Group=nodepool
+User=nodepool
+ExecStart=/bin/sh -c "/usr/bin/nodepoold -d -l /etc/nodepool/nodepoold-logging.conf --no-webapp"
+
+[Install]
+WantedBy=multi-user.target

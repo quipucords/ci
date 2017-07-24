@@ -1,0 +1,35 @@
+# List of the ZQM publishers. see:
+# https://docs.openstack.org/infra/nodepool/configuration.html#zmq-publishers
+nodepool_zmq_publishers: []
+
+# List of the diskimages to be built. See:
+# https://docs.openstack.org/infra/nodepool/configuration.html#diskimages
+nodepool_diskimages: []
+
+# List of node's labels. See:
+# https://docs.openstack.org/infra/nodepool/configuration.html#labels
+nodepool_labels: []
+
+# List of the OpenStack cloud providers. See:
+# https://docs.openstack.org/infra/nodepool/configuration.html#provider
+nodepool_providers: []
+
+# List of the Jenkins masters. See:
+# https://docs.openstack.org/infra/nodepool/configuration.html#targets
+nodepool_targets: []
+
+# List of Jenkins secrets. Use the same name as in the targets to provide
+# auth information for that target. Example:
+#
+# - name: my-jenkins1
+#   user: myuser
+#   apikey: apikey1
+#   url: https://jenkins1.domain.com/
+#   credentials: credentials-id-0001
+# - name: my-jenkins2
+#   user: myuser
+#   apikey: apikey2
+#   url: https://jenkins2.domain.com/
+#   credentials: credentials-id-0002
+#
+nodepool_secure_jenkins: []

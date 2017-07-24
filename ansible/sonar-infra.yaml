@@ -1,0 +1,4 @@
+- hosts: nodepool
+  become: true
+  roles:
+    - nodepool

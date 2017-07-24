@@ -1,0 +1,22 @@
+elements-dir: /etc/nodepool/elements
+
+images-dir: /opt/nodepool/images
+
+zmq-publishers:
+{{ nodepool_zmq_publishers | to_nice_yaml(indent=2) | indent(2, True) }}
+
+zookeeper-servers:
+  - host: localhost
+    port: 2181
+
+diskimages:
+{{ nodepool_diskimages | to_nice_yaml(indent=2) | indent(2, True) }}
+
+labels:
+{{ nodepool_labels | to_nice_yaml(indent=2) | indent(2, True) }}
+
+providers:
+{{ nodepool_providers | to_nice_yaml(indent=2) | indent(2, True) }}
+
+targets:
+{{ nodepool_targets | to_nice_yaml(indent=2) | indent(2, True) }}

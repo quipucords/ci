@@ -1,0 +1,2 @@
+clouds:
+{{ nodepool_openstack_clouds | to_nice_yaml(indent=2) | indent(2, True) }}

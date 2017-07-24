@@ -1,0 +1,174 @@
+- name: Create nodepool group.
+  group:
+    name: nodepool
+
+- name: Create nodepool user.
+  user:
+    createhome: yes
+    group: nodepool
+    home: /var/lib/nodepool
+    name: nodepool
+
+- name: Allow nodepool to run sudo commands without password.
+  lineinfile:
+    path: /etc/sudoers
+    state: present
+    regexp: '^%nodepool\s'
+    line: '%nodepool ALL=(ALL) NOPASSWD: ALL'
+
+- name: Install required packages.
+  package:
+    name: "{{ item }}"
+    state: installed
+  with_items:
+    - gcc
+    - gcc-c++
+    - git
+    - libffi-devel
+    - libselinux-python
+    - libxml2-devel
+    - libxslt-devel
+    - openssl-devel
+    - postgresql-server
+    - python-devel
+    - python-pip
+    - python-psycopg2
+    - qemu
+    - redhat-rpm-config
+    - yum-utils
+    - zlib-devel
+    - zookeeper
+
+- name: Initialize postgresql.
+  command: postgresql-setup --initdb
+  args:
+    creates: /var/lib/pgsql/data/
+
+- name: Enable postgresql-server service.
+  systemd:
+    enabled: yes
+    name: postgresql
+    state: started
+
+- name: Create nodepool database.
+  become_user: postgres
+  postgresql_db:
+    name: nodepool
+
+- name: Create nodepool database role.
+  become_user: postgres
+  postgresql_user:
+    db: nodepool
+    name: nodepool
+
+- name: Create zookeeper configuration file.
+  copy:
+    dest: /etc/zookeeper/zoo.cfg
+    mode: 0644
+    remote_src: yes
+    src: /etc/zookeeper/zoo_sample.cfg
+
+- name: Enable zookeeper service.
+  systemd:
+    enabled: yes
+    name: zookeeper
+    state: started
+
+- name: Install nodepool using pip.
+  pip:
+    name: nodepool
+
+- name: Create required directories.
+  file:
+    group: nodepool
+    owner: nodepool
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - /etc/nodepool
+    - /etc/nodepool/elements
+    - /opt/dib/cache
+    - /opt/dib/tmp
+    - /opt/nodepool/images
+    - /var/lib/nodepool/.config/openstack
+    - /var/log/nodepool
+    - /var/log/nodepool/images
+
+- name: Install nodepool configuration.
+  template:
+    dest: /etc/nodepool/nodepool.yaml
+    group: nodepool
+    mode: 0644
+    owner: nodepool
+    src: nodepool.yaml
+
+- name: Install nodepool secure configuration.
+  template:
+    dest: /etc/nodepool/secure.conf
+    group: nodepool
+    mode: 0600
+    owner: nodepool
+    src: secure.conf
+
+- name: Copy nodepool elements.
+  copy:
+    dest: /etc/nodepool/elements
+    group: nodepool
+    mode: preserve
+    owner: nodepool
+    src: elements/  # the trailing / is important to copy only the inner dirs
+
+- name: Install builder logging configuration file.
+  copy:
+    dest: /etc/nodepool/builder-logging.conf
+    group: nodepool
+    mode: 0644
+    owner: nodepool
+    src: builder-logging.conf
+
+- name: Install nodepoold logging configuration file.
+  copy:
+    dest: /etc/nodepool/nodepoold-logging.conf
+    group: nodepool
+    mode: 0644
+    owner: nodepool
+    src: nodepoold-logging.conf
+
+- name: Install nodepool-builder service script into place.
+  copy:
+    dest: /etc/systemd/system/nodepool-builder.service
+    group: root
+    mode: 0644
+    owner: root
+    src: nodepool-builder.service
+
+- name: Install nodepoold service script into place.
+  copy:
+    dest: /etc/systemd/system/nodepoold.service
+    group: root
+    mode: 0644
+    owner: root
+    src: nodepoold.service
+
+- name: Enable nodepool-builder service.
+  systemd:
+    daemon_reload: yes
+    enabled: yes
+    name: nodepool-builder
+    state: started
+
+- name: Enable nodepoold service.
+  systemd:
+    daemon_reload: yes
+    enabled: yes
+    name: nodepoold
+    state: started
+
+- name: Install openstack clouds configuration.
+  template:
+    dest: /var/lib/nodepool/.config/openstack/clouds.yaml
+    group: nodepool
+    mode: 0600
+    owner: nodepool
+    src: clouds.yaml
+  when: nodepool_openstack_clouds is defined
