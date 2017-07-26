@@ -1,0 +1,89 @@
+- name: Ceate scanadmin user.
+  user:
+    createhome: yes
+    name: scanadmin
+
+- name: Create scanbasic user.
+  user:
+    createhome: yes
+    name: scanbasic
+
+- name: Setup RHEL7 yum repo.
+  yum_repository:
+    name: "{{ rhel7_yum_repo_name }}"
+    description: RHEL 7 - $basearch
+    file: "{{ yum_repo_file }}"
+    baseurl: "{{ rhel7_yum_repo_url }}"
+    enabled: yes
+    gpgcheck: no
+  when:
+    - ansible_distribution == "RedHat"
+    - ansible_distribution_major_version == "7"
+
+- name: Setup RHEL7 yum extras repo.
+  yum_repository:
+    name: "{{ rhel7_yum_extras_repo_name }}"
+    description: RHEL 7 - $basearch
+    file: "{{ yum_repo_file }}"
+    baseurl: "{{ rhel7_yum_extras_repo_url }}"
+    enabled: yes
+    gpgcheck: no
+  when:
+    - ansible_distribution == "RedHat"
+    - ansible_distribution_major_version == "7"
+
+- name: Setup RHEL6 yum repo.
+  yum_repository:
+    name: "{{ rhel6_yum_repo_name }}"
+    description: RHEL 6 - $basearch
+    file: "{{ yum_repo_file }}"
+    baseurl: "{{ rhel6_yum_repo_url }}"
+    enabled: yes
+    gpgcheck: no
+  when:
+    - ansible_distribution == "RedHat"
+    - ansible_distribution_major_version == "6"
+
+- name: Setup RHEL6 yum extras repo.
+  yum_repository:
+    name: "{{ rhel6_yum_extras_repo_name }}"
+    description: RHEL 6 - $basearch
+    file: "{{ yum_repo_file }}"
+    baseurl: "{{ rhel6_yum_extras_repo_url }}"
+    enabled: yes
+    gpgcheck: no
+  when:
+    - ansible_distribution == "RedHat"
+    - ansible_distribution_major_version == "6"
+
+- name: Add libselinux-python support.
+  package:
+    name: libselinux-python
+    state: latest
+    disable_gpg_check: yes
+
+- name: Set authorized key from file for root.
+  authorized_key:
+    user: root
+    state: present
+    key: "{{ ssh_public_key_file }}"
+
+- name: Set authorized key from file for scanadmin.
+  authorized_key:
+    user: scanadmin
+    state: present
+    key: "{{ ssh_public_key_file }}"
+
+- name: Set authorized key from file for scanbasic.
+  authorized_key:
+    user: scanbasic
+    state: present
+    key: "{{ ssh_public_key_file }}"
+
+
+- name: Allow scanadmin to run sudo commands without password.
+  lineinfile:
+    path: /etc/sudoers
+    state: present
+    regexp: '^%scanadmin\s'
+    line: '%scanadmin ALL=(ALL) NOPASSWD: ALL'

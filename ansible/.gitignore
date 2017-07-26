@@ -1,1 +1,3 @@
 *.retry
+sonar-extra-vars.yaml
+sonar-hosts
