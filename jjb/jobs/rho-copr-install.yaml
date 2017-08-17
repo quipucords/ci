@@ -1,0 +1,39 @@
+- job-template:
+    name: 'rho-copr-install-{os}'
+    node: '{os}-np'
+    triggers:
+        - timed: '@midnight'
+    wrappers:
+        - inject:
+            properties-content: |
+                OS={os}
+        - credentials-binding:
+            - file:
+                credential-id: d7ad70b5-0d27-47bb-882b-b50ebe39c5e3
+                variable: RHEL7_REPO
+    builders:
+        - shell: |
+            if [ "${{OS}}" = "rhel7" ]; then
+                sudo cp "${{RHEL7_REPO}}" /etc/yum.repos.d
+
+            fi
+            if [[ "${{OS}}" != f* ]]; then
+                sudo rpm -Uvh https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm || true
+            fi
+            sudo wget -O /etc/yum.repos.d/rho.repo https://copr.fedorainfracloud.org/coprs/chambridge/rho/repo/{repo}/chambridge-rho-{repo}.repo
+            sudo yum install -y rho
+
+            ssh-keygen -t rsa -N "" -f sshkey
+            cat sshkey.pub >> ~/.ssh/authorized_keys
+            uuidgen > vault
+
+            rho auth add --name 1 --username jenkins --sshkeyfile sshkey --vault vault
+            rho auth show --name 1 --vault vault
+
+            rho profile add --name 1 --hosts 127.0.0.1 --auth 1 --vault vault
+            rho profile show --name 1 --vault vault
+
+            rho scan --reset --reportfile report.csv --profile 1 --vault vault
+            cat report.csv
+    publishers:
+        - mark-node-offline

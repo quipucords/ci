@@ -1,0 +1,10 @@
+- project:
+    name:  rho-copr-install
+    jobs:
+        - 'rho-copr-install-{os}'
+    os:
+        - 'centos7'
+        - 'f25':
+            repo: 'fedora-25'
+        - 'rhel7'
+    repo: 'epel-7'
