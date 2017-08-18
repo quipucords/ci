@@ -1,0 +1,51 @@
+- job:
+    name: 'rho-nightly-automation'
+    node: 'f25-np'
+    triggers:
+        - timed: '@daily'
+    scm:
+        - git:
+            url: https://github.com/quipucords/camayoc.git
+            basedir: camayoc
+            branches:
+                - '*/master'
+            skip-tag: true
+        - git:
+            url: https://github.com/quipucords/rho.git
+            basedir: rho
+            branches:
+                - '*/master'
+            skip-tag: true
+    builders:
+        - shining-panda:
+            build-environment: virtualenv
+            python-version: System-CPython-3
+            nature: shell
+            command: |
+                cd rho
+                pip install -r requirements.txt
+                cd -
+                pip install ./camayoc[dev]
+                pip install pytest-xdist
+
+                cat > .coveragerc <<EOF
+                [report]
+                include=rho/rho/*
+                EOF
+
+                set +e
+                py.test -v -n auto --cov rho --cov-report term --cov-report xml --junit-xml junit.xml camayoc/camayoc/tests
+                set -e
+    publishers:
+        - junit:
+            results: junit.xml
+        - cobertura:
+            fail-no-reports: true
+            report-file: coverage.xml
+            source-encoding: UTF_8
+            targets:
+                - line:
+                    healthy: 80
+                    unhealthy: 50
+                    failing: 0
+        - mark-node-offline
