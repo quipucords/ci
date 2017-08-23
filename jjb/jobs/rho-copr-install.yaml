@@ -33,7 +33,7 @@
             rho profile add --name 1 --hosts 127.0.0.1 --auth 1 --vault vault
             rho profile show --name 1 --vault vault
 
-            rho scan --reset --reportfile report.csv --profile 1 --vault vault
+            rho scan --reportfile report.csv --profile 1 --vault vault
             cat report.csv
     publishers:
         - mark-node-offline
