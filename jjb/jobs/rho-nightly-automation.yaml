@@ -2,7 +2,7 @@
     name: 'rho-nightly-automation'
     node: 'f25-np'
     triggers:
-        - timed: '@daily'
+        - timed: '@midnight'
     scm:
         - git:
             url: https://github.com/quipucords/camayoc.git
