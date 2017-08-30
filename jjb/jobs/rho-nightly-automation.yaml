@@ -16,6 +16,10 @@
             branches:
                 - '*/master'
             skip-tag: true
+    wrappers:
+        - ssh-agent-credentials:
+            users:
+                - '390bdc1f-73c6-457e-81de-9e794478e0e'
     builders:
         - shining-panda:
             build-environment: virtualenv
@@ -32,6 +36,12 @@
                 [report]
                 include=rho/rho/*
                 EOF
+
+                # Link RHO ansible modules
+                sudo mkdir -p /usr/share/ansible/rho/
+                sudo ln -s "${PWD}/rho/rho_playbook.yml" /usr/share/ansible/rho/
+                sudo ln -s "${PWD}/rho/library" /usr/share/ansible/rho/
+                sudo ln -s "${PWD}/rho/roles" /usr/share/ansible/rho/
 
                 set +e
                 py.test -v -n auto --cov rho --cov-report term --cov-report xml --junit-xml junit.xml camayoc/camayoc/tests
