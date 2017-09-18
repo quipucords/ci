@@ -1,5 +1,12 @@
 curl:
+gcc:
 git:
 java:
+libffi-devel:
+openssl-devel:
+python-devel:
+python-pip:
+redhat-lsb-core:
+redhat-rpm-config:
 vim:
 wget:

@@ -29,11 +29,13 @@
     - libxml2-devel
     - libxslt-devel
     - openssl-devel
+    - policycoreutils-python-utils
     - postgresql-server
     - python-devel
     - python-pip
     - python-psycopg2
     - qemu
+    - qemu-img
     - redhat-rpm-config
     - yum-utils
     - zlib-devel
@@ -42,7 +44,7 @@
 - name: Initialize postgresql.
   command: postgresql-setup --initdb
   args:
-    creates: /var/lib/pgsql/data/
+    creates: /var/lib/pgsql/data/postgresql.conf
 
 - name: Enable postgresql-server service.
   systemd:
@@ -87,6 +89,8 @@
   with_items:
     - /etc/nodepool
     - /etc/nodepool/elements
+    - /etc/nodepool/localimages
+    - /etc/nodepool/yumrepos
     - /opt/dib/cache
     - /opt/dib/tmp
     - /opt/nodepool/images
@@ -150,20 +154,6 @@
     owner: root
     src: nodepoold.service
 
-- name: Enable nodepool-builder service.
-  systemd:
-    daemon_reload: yes
-    enabled: yes
-    name: nodepool-builder
-    state: started
-
-- name: Enable nodepoold service.
-  systemd:
-    daemon_reload: yes
-    enabled: yes
-    name: nodepoold
-    state: started
-
 - name: Install openstack clouds configuration.
   template:
     dest: /var/lib/nodepool/.config/openstack/clouds.yaml
@@ -172,3 +162,17 @@
     owner: nodepool
     src: clouds.yaml
   when: nodepool_openstack_clouds is defined
+
+- name: Enable and start nodepool-builder service.
+  systemd:
+    daemon_reload: yes
+    enabled: yes
+    name: nodepool-builder
+    state: started
+
+- name: Enable and start nodepoold service.
+  systemd:
+    daemon_reload: yes
+    enabled: yes
+    name: nodepoold
+    state: started
