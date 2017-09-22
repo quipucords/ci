@@ -8,3 +8,17 @@
             repo: 'fedora-25'
         - 'rhel7'
     repo: 'epel-7'
+- project:
+   name: rho-remote-scan
+   jobs:
+     - 'rho-nightly-remote-scan-{config}'
+   config:
+     - 'os':
+         config-file-id: '5e68dcca-4d9f-4470-b30c-ecc01121f53e'
+         time: '0 3 * * *'
+     - 'product':
+         config-file-id: '67f78386-fa45-4b68-a6d1-17bf97d5141d'
+         time: '0 2 * * *'
+     - 'individual':
+         config-file-id: 'b3e9ff0b-929e-473c-aca2-a9fa58d8dc41'
+         time: '0 1 * * *'
