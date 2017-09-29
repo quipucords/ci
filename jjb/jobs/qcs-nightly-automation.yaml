@@ -1,0 +1,55 @@
+- job:
+    name: 'qcs-nightly-automation'
+    node: 'f25-np'
+    triggers:
+        - timed: '@midnight'
+    scm:
+        - git:
+            url: https://github.com/quipucords/camayoc.git
+            basedir: camayoc
+            branches:
+                - '*/master'
+            skip-tag: true
+        - git:
+            url: https://github.com/quipucords/quipucords.git
+            basedir: quipucords
+            branches:
+                - '*/master'
+            skip-tag: true
+    wrappers:
+        - ssh-agent-credentials:
+            users:
+                - '390bdc1f-73c6-457e-81de-9e794478e0e'
+    builders:
+        - config-file-provider:
+            files:
+              - file-id: '2c2b5dc8-3794-4d62-b49a-c3968cd5843a'
+                target: 'camayoc/config.yaml'
+        - shining-panda:
+            build-environment: virtualenv
+            python-version: System-CPython-3
+            nature: shell
+            command: |
+                export XDG_CONFIG_HOME=$PWD
+                cd quipucords
+                sudo dnf install -y python-tools
+                pip install -r requirements.txt
+                make server-init
+                # run server in background and collect its PID
+                nohup make serve > /dev/null 2>&1 &
+                export SERVERPID=$!
+
+                cd -
+                pip install ./camayoc[dev]
+
+                set +e
+                py.test -v --junit-xml ${WORKSPACE}/junit.xml camayoc/camayoc/tests/qcs
+                set -e
+
+                # kill the server running in the background
+                kill -n 9 $SERVERPID
+
+    publishers:
+        - junit:
+            results: junit.xml
+        - mark-node-offline
