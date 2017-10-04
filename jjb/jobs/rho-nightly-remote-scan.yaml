@@ -55,7 +55,10 @@
                 sudo ln -s "${{PWD}}/rho/library" /usr/share/ansible/rho/
                 sudo ln -s "${{PWD}}/rho/roles" /usr/share/ansible/rho/
                 export XDG_CONFIG_HOME=$PWD
-
+                # begin work around for issue #15
+                # see https://github.com/quipucords/ci/issues/15
+                pip install ansible==2.3.2
+                # end work around
                 set +e
                 pytest -v --junit-xml junit.xml camayoc/camayoc/tests/remote/
                 set -e
