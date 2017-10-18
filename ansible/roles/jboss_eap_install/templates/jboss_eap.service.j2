@@ -1,0 +1,14 @@
+[Unit]
+Description=JBoss EAP
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+EnvironmentFile=/etc/default/{{jboss_service_name}}.conf
+User={{jboss_username}}
+Group={{jboss_username}}
+WorkingDirectory={{jboss_home_dir}}/{{jboss_install_dir}}/bin/
+ExecStart={{jboss_home_dir}}/{{jboss_install_dir}}/bin/standalone.sh
+
+[Install]
+WantedBy=default.target
