@@ -1,0 +1,43 @@
+- block:
+  - name: Install packages required for jboss
+    action: "{{ ansible_pkg_mgr }} name={{ item }} state=present"
+    with_items:
+      - unzip
+      - java-1.8.0-openjdk-devel
+      - java-1.8.0-openjdk
+      - java-1.8.0-openjdk-headless
+
+  - name: Unpack jboss zip into jboss user home
+    unarchive:
+      copy: True
+      src: '{{jboss_zip_path}}'
+      dest: '{{jboss_home_dir}}/'
+      group: '{{jboss_username}}'
+      mode: "0644"
+      owner: '{{jboss_username}}'
+
+  - name: Ensure jboss user can read all dirs
+    command: 'find {{ jboss_home_dir }} -type d -exec chmod -c 0755 {} \;'
+
+  - name: Make standalone.sh executable
+    file:
+        path: '{{jboss_home_dir}}/{{jboss_install_dir}}/bin/standalone.sh'
+        mode: 'u=rwx'
+        state: 'touch'
+
+  - name: Install standalone.conf file
+    template:
+        src: standalone.conf.j2
+        dest: '/etc/default/{{jboss_service_name}}.conf'
+
+  - name: Install systemd unit file
+    template:
+        src: jboss_eap.service.j2
+        dest: '/usr/lib/systemd/system/{{jboss_service_name}}.service'
+
+  - name: Run daemon reload
+    shell: "systemctl daemon-reload"
+
+  - name: Start services
+    service: "name={{jboss_service_name}} state=started enabled=yes"
+  when: ansible_os_family == "RedHat" and ansible_distribution_major_version|int > 6

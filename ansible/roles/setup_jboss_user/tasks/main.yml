@@ -1,0 +1,5 @@
+- name: Ceate jboss user with custom home directory.
+  user:
+    createhome: yes
+    name: '{{jboss_username}}'
+    home: '{{jboss_home_dir}}'

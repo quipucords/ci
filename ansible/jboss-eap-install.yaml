@@ -1,0 +1,34 @@
+- hosts: all
+  roles:
+    - role: subscription-manager
+      when: ansible_distribution == 'RedHat'
+    - role: jboss_eap_install
+
+# To use this playbook, provide the following variables:
+# ansible-playbook -i /path/to/hosts jboss-eap-install.yaml \
+# -e jboss_zip_path=/path/to/jboss-eap-7.0.0.zip
+#
+# You can register a RHEL 7 system with subscription manager by providing your
+# username and password:
+#
+# -e rhn_username=USERNAME -e rhn_password=PASSWORD
+#
+# By providing the following variables, you can provide a custom rhsm server
+# and base url to subscription-manager
+#
+# -e custom_baseurl=CDNURL \
+# -e custom_server=SERVERURL \
+#
+#
+# Other optional variables:
+#
+# jboss_install_dir:
+#     The name of the directory created when you unpack the jboss zip file
+# jboss_log_dir:
+#     Path to the directory where jboss will put its logs
+# jboss_service_name:
+#     Name that the service will be called, i.e. what systemctl will know it as
+# jboss_home_dir:
+#     Home directory of jboss user, where the jboss zip will be unpacked
+# jboss_username:
+#     Name of the jboss user, who will own the process running jboss
