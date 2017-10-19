@@ -30,6 +30,13 @@
             python-version: System-CPython-3
             nature: shell
             command: |
+                # Make sure the path $HOME/.ssh/id_rsa is a valid path in order
+                # to not fail the rho auth validation for the sshkeypath. Even
+                # though this will be an empty file, the SSH key used will come
+                # from the ssh-agent.
+                mkdir -p /home/jenkins/.ssh/
+                touch /home/jenkins/.ssh/id_rsa
+
                 cd rho
                 pip install -r requirements.txt
                 cd -
