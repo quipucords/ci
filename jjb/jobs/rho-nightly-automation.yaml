@@ -52,8 +52,15 @@
                 sudo ln -s "${PWD}/rho/library" /usr/share/ansible/rho/
                 sudo ln -s "${PWD}/rho/roles" /usr/share/ansible/rho/
 
+                # Make sure the path $HOME/.ssh/id_rsa is a valid path in order
+                # to not fail the rho auth validation for the sshkeypath. Even
+                # though this will be an empty file, the SSH key used will come
+                # from the ssh-agent.
+                mkdir -p /home/jenkins/.ssh/
+                touch /home/jenkins/.ssh/id_rsa
+
                 set +e
-                py.test -v -n auto --junit-xml junit.xml camayoc/camayoc/tests
+                py.test -v -n auto --junit-xml junit.xml camayoc/camayoc/tests/rho
                 set -e
 
                 coverage combine
