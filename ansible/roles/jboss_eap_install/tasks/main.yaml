@@ -7,21 +7,41 @@
       - java-1.8.0-openjdk
       - java-1.8.0-openjdk-headless
 
-  - name: Unpack jboss zip into jboss user home
+  - name: Ensure base dir that jboss will be installed into and log dir exists
+    file:
+      path: '{{item}}'
+      state: directory
+      owner: '{{jboss_username}}'
+      group: '{{jboss_username}}'
+      mode: 0755
+    with_items:
+        - '{{jboss_base_dir}}'
+        - '{{jboss_log_dir}}'
+
+  - name: Unpack jboss zip into base dir
     unarchive:
       copy: True
       src: '{{jboss_zip_path}}'
-      dest: '{{jboss_home_dir}}/'
+      dest: '{{jboss_base_dir}}/'
       group: '{{jboss_username}}'
       mode: "0644"
       owner: '{{jboss_username}}'
+      list_files: True
+    register: unzip_result
+
+  - name: Set name of jboss install dir based on unzip task
+    set_fact:
+        jboss_install_dir: "{{jboss_base_dir}}/{{unzip_result['files'][0]}}"
+
+  - debug:
+      msg: install dir is now {{jboss_install_dir}}
 
   - name: Ensure jboss user can read all dirs
-    command: 'find {{ jboss_home_dir }} -type d -exec chmod -c 0755 {} \;'
+    command: 'find {{ jboss_install_dir }} -type d -exec chmod -c 0755 {} \;'
 
   - name: Make standalone.sh executable
     file:
-        path: '{{jboss_home_dir}}/{{jboss_install_dir}}/bin/standalone.sh'
+        path: '{{jboss_install_dir}}/bin/standalone.sh'
         mode: 'u=rwx'
         state: 'touch'
 

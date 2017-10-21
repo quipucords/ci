@@ -1,2 +1,2 @@
-jboss_home_dir: '/opt/jboss'
+jboss_user_dir: '/opt/jboss'
 jboss_username: 'jboss'

@@ -7,8 +7,8 @@ Wants=network-online.target
 EnvironmentFile=/etc/default/{{jboss_service_name}}.conf
 User={{jboss_username}}
 Group={{jboss_username}}
-WorkingDirectory={{jboss_home_dir}}/{{jboss_install_dir}}/bin/
-ExecStart={{jboss_home_dir}}/{{jboss_install_dir}}/bin/standalone.sh
+WorkingDirectory={{jboss_install_dir}}/bin/
+ExecStart={{jboss_install_dir}}/bin/standalone.sh
 
 [Install]
 WantedBy=default.target
