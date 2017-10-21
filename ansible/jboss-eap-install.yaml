@@ -22,13 +22,14 @@
 #
 # Other optional variables:
 #
-# jboss_install_dir:
-#     The name of the directory created when you unpack the jboss zip file
+# jboss_base_dir:
+#     The directory in which the zip file will be unpacked (parent eventual
+#     to JBOSS_HOME i.e., where this jboss install will actually be)
 # jboss_log_dir:
 #     Path to the directory where jboss will put its logs
 # jboss_service_name:
 #     Name that the service will be called, i.e. what systemctl will know it as
-# jboss_home_dir:
-#     Home directory of jboss user, where the jboss zip will be unpacked
+# jboss_user_dir:
+#     Home directory of jboss user
 # jboss_username:
 #     Name of the jboss user, who will own the process running jboss

@@ -2,4 +2,4 @@
   user:
     createhome: yes
     name: '{{jboss_username}}'
-    home: '{{jboss_home_dir}}'
+    home: '{{jboss_user_dir}}'
