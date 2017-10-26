@@ -3,6 +3,12 @@
     createhome: yes
     name: scanadmin
 
+- name: Ceate scanadminpwd user.
+  user:
+    createhome: yes
+    name: scanadminpwd
+    password: $6$4/tgjuunIJhVrOAN$50K51yQIN2nOt6lgxFegjHf1Xuk9t4sADr4RozCuBwE/gABA19K/pHb9hUpgAiwoWr2IoSWayuWmzgekUtNg81
+
 - name: Create scanbasic user.
   user:
     createhome: yes
@@ -19,6 +25,9 @@
   when:
     - ansible_distribution == "RedHat"
     - ansible_distribution_major_version == "7"
+    - yum_repo_file is defined
+    - rhel7_yum_repo_name is defined
+    - rhel7_yum_repo_url is defined
 
 - name: Setup RHEL7 yum extras repo.
   yum_repository:
@@ -31,6 +40,9 @@
   when:
     - ansible_distribution == "RedHat"
     - ansible_distribution_major_version == "7"
+    - yum_repo_file is defined
+    - rhel7_yum_extras_repo_name is defined
+    - rhel7_yum_extras_repo_url is defined
 
 - name: Setup RHEL6 yum repo.
   yum_repository:
@@ -43,6 +55,9 @@
   when:
     - ansible_distribution == "RedHat"
     - ansible_distribution_major_version == "6"
+    - yum_repo_file is defined
+    - rhel6_yum_repo_name is defined
+    - rhel6_yum_repo_url is defined
 
 - name: Setup RHEL6 yum extras repo.
   yum_repository:
@@ -55,6 +70,24 @@
   when:
     - ansible_distribution == "RedHat"
     - ansible_distribution_major_version == "6"
+    - yum_repo_file is defined
+    - rhel6_yum_extras_repo_name is defined
+    - rhel6_yum_extras_repo_url is defined
+
+- name: Setup RHEL5 yum repo.
+  yum_repository:
+    name: "{{ rhel5_yum_repo_name }}"
+    description: RHEL 5 - $basearch
+    file: "{{ yum_repo_file }}"
+    baseurl: "{{ rhel5_yum_repo_url }}"
+    enabled: yes
+    gpgcheck: no
+  when:
+    - ansible_distribution == "RedHat"
+    - ansible_distribution_major_version == "5"
+    - yum_repo_file is defined
+    - rhel5_yum_repo_name is defined
+    - rhel5_yum_repo_url is defined
 
 - name: Add libselinux-python support.
   package:
@@ -67,19 +100,24 @@
     user: root
     state: present
     key: "{{ ssh_public_key_file }}"
+  when:
+    - ssh_public_key_file is defined
 
 - name: Set authorized key from file for scanadmin.
   authorized_key:
     user: scanadmin
     state: present
     key: "{{ ssh_public_key_file }}"
+  when:
+    - ssh_public_key_file is defined
 
 - name: Set authorized key from file for scanbasic.
   authorized_key:
     user: scanbasic
     state: present
     key: "{{ ssh_public_key_file }}"
-
+  when:
+    - ssh_public_key_file is defined
 
 - name: Allow scanadmin to run sudo commands without password.
   lineinfile:
@@ -87,3 +125,10 @@
     state: present
     regexp: '^%scanadmin\s'
     line: '%scanadmin ALL=(ALL) NOPASSWD: ALL'
+
+- name: Allow scanadminpwd to run sudo commands.
+  lineinfile:
+    path: /etc/sudoers
+    state: present
+    regexp: '^%scanadminpwd\s'
+    line: '%scanadminpwd ALL=(ALL) ALL'
