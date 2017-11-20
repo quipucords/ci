@@ -1,55 +1,67 @@
+- name: Install packages required for jboss
+  action: "{{ ansible_pkg_mgr }} name={{ item }} state=present"
+  with_items:
+    - unzip
+    - java-1.8.0-openjdk-devel
+    - java-1.8.0-openjdk
+    - java-1.8.0-openjdk-headless
+
+- name: Using chkconfig, must use canonical process name and log dir
+  set_fact:
+      # when we use chkconfig, these vars are determined by the init script
+      jboss_service_name: 'jboss-eap-rhel'
+      jboss_log_dir: '/var/log/jboss-eap'
+  when: not systemd
+
+- name: Display install configuration if using chkconfig
+  debug:
+    msg: 'Installing with chkconfig, so process will be jboss-eap-rhel and log dir will be /var/log/jboss-eap'
+  when: not systemd
+
+- name: Ensure base dir that jboss will be installed into and log dir exists
+  file:
+    path: '{{item}}'
+    state: directory
+    owner: '{{jboss_username}}'
+    group: '{{jboss_username}}'
+    mode: 0755
+  with_items:
+      - '{{jboss_base_dir}}'
+      - '{{jboss_log_dir}}'
+
+- name: Unpack jboss zip into base dir
+  unarchive:
+    copy: true
+    src: '{{jboss_zip_path}}'
+    dest: '{{jboss_base_dir}}/'
+    group: '{{jboss_username}}'
+    mode: 0644
+    owner: '{{jboss_username}}'
+    list_files: true
+  register: unzip_result
+
+- name: Set name of jboss install dir based on unzip task
+  set_fact:
+      jboss_install_dir: "{{jboss_base_dir}}/{{unzip_result['files'][0]}}"
+
+- debug:
+    msg: install dir is now {{jboss_install_dir}}
+
+- name: Ensure jboss user can read all dirs
+  command: 'find {{ jboss_install_dir }} -type d -exec chmod -c 0755 {} \;'
+
+- name: Install standalone.conf file
+  template:
+    src: standalone.conf.j2
+    dest: '/etc/default/{{jboss_service_name}}.conf'
+
+- name: Make standalone.sh executable
+  file:
+      path: '{{jboss_install_dir}}/bin/standalone.sh'
+      mode: 'u=rwx'
+      state: 'touch'
+
 - block:
-  - name: Install packages required for jboss
-    action: "{{ ansible_pkg_mgr }} name={{ item }} state=present"
-    with_items:
-      - unzip
-      - java-1.8.0-openjdk-devel
-      - java-1.8.0-openjdk
-      - java-1.8.0-openjdk-headless
-
-  - name: Ensure base dir that jboss will be installed into and log dir exists
-    file:
-      path: '{{item}}'
-      state: directory
-      owner: '{{jboss_username}}'
-      group: '{{jboss_username}}'
-      mode: 0755
-    with_items:
-        - '{{jboss_base_dir}}'
-        - '{{jboss_log_dir}}'
-
-  - name: Unpack jboss zip into base dir
-    unarchive:
-      copy: True
-      src: '{{jboss_zip_path}}'
-      dest: '{{jboss_base_dir}}/'
-      group: '{{jboss_username}}'
-      mode: "0644"
-      owner: '{{jboss_username}}'
-      list_files: True
-    register: unzip_result
-
-  - name: Set name of jboss install dir based on unzip task
-    set_fact:
-        jboss_install_dir: "{{jboss_base_dir}}/{{unzip_result['files'][0]}}"
-
-  - debug:
-      msg: install dir is now {{jboss_install_dir}}
-
-  - name: Ensure jboss user can read all dirs
-    command: 'find {{ jboss_install_dir }} -type d -exec chmod -c 0755 {} \;'
-
-  - name: Make standalone.sh executable
-    file:
-        path: '{{jboss_install_dir}}/bin/standalone.sh'
-        mode: 'u=rwx'
-        state: 'touch'
-
-  - name: Install standalone.conf file
-    template:
-        src: standalone.conf.j2
-        dest: '/etc/default/{{jboss_service_name}}.conf'
-
   - name: Install systemd unit file
     template:
         src: jboss_eap.service.j2
@@ -60,4 +72,38 @@
 
   - name: Start services
     service: "name={{jboss_service_name}} state=started enabled=yes"
-  when: ansible_os_family == "RedHat" and ansible_distribution_major_version|int > 6
+
+  when: systemd
+
+- block:
+  - name: Set name of init script
+    set_fact:
+        # when we use chkconfig, the service name is determined by the init script
+        jboss_service_name: 'jboss-eap-rhel'
+        init_script_path: '/etc/init.d/jboss-eap-rhel.sh'
+        init_script: 'jboss-eap-rhel.sh'
+
+  - name: Install init.d script
+    copy:
+      remote_src: true
+      src: '{{jboss_install_dir}}/bin/init.d/jboss-eap-rhel.sh'
+      dest: '{{init_script_path}}'
+      mode: 0755
+
+  - name: Configure init script config file setting
+    shell: 'sed -i "s/\/etc\/default\/jboss-eap.conf/\/etc\/default\/{{jboss_service_name}}.conf/" {{init_script_path}}'
+
+  - name: Configure init script process name setting
+    shell: 'sed -i "s/# processname: jboss-eap/# processname: {{jboss_service_name}}/" {{init_script_path}}'
+
+  - name: Add service to chkconfig
+    shell: 'chkconfig --add {{init_script}}'
+
+  - name: Enable jboss on startup
+    shell: 'chkconfig {{init_script}} on'
+
+  - name: Start jboss with /usr/bin/service
+    shell: 'service {{jboss_service_name}} start'
+
+  when: not systemd
+

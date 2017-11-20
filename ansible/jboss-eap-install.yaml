@@ -19,17 +19,26 @@
 # -e custom_baseurl=CDNURL \
 # -e custom_server=SERVERURL \
 #
-#
 # Other optional variables:
 #
-# jboss_base_dir:
+# systemd: BOOLEAN
+#
+#      By default, jboss is installed with chkconfig. If you prefer systemd,
+#      pass -e '{systemd: true}'
+#
+# jboss_base_dir: PATH
 #     The directory in which the zip file will be unpacked (parent eventual
 #     to JBOSS_HOME i.e., where this jboss install will actually be)
 # jboss_log_dir:
-#     Path to the directory where jboss will put its logs
-# jboss_service_name:
+#     Path to the directory where jboss will put its logs. Can only be
+#     specified when installing with systemd
+#
+# jboss_service_name: STRING
 #     Name that the service will be called, i.e. what systemctl will know it as
-# jboss_user_dir:
+#     Can only be specified when installing with systemd.
+#
+# jboss_user_dir: PATH
 #     Home directory of jboss user
-# jboss_username:
+#
+# jboss_username: STRING
 #     Name of the jboss user, who will own the process running jboss
