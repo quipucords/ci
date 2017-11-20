@@ -1,4 +1,5 @@
 curl:
+docker:
 gcc:
 git:
 java:
@@ -10,4 +11,3 @@ redhat-lsb-core:
 redhat-rpm-config:
 vim:
 wget:
-docker:
