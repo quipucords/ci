@@ -2,3 +2,4 @@ jboss_zip_path: 'jboss-eap-7.0.0.zip'
 jboss_base_dir: '{{jboss_user_dir}}'
 jboss_log_dir: '/var/log/jboss'
 jboss_service_name: 'jboss-eap-7'
+systemd: false
