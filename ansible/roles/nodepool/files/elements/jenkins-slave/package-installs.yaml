@@ -10,3 +10,4 @@ redhat-lsb-core:
 redhat-rpm-config:
 vim:
 wget:
+docker:
