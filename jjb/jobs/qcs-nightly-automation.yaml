@@ -31,12 +31,15 @@
             nature: shell
             command: |
                 export XDG_CONFIG_HOME=$PWD
+                mkdir -p /home/jenkins/.ssh
+                touch /home/jenkins/.ssh/id_rsa
+                chmod 0600 /home/jenkins/.ssh/id_rsa
                 cd quipucords
                 sudo dnf install -y python-tools
                 pip install -r requirements.txt
                 make server-init
                 # run server in background and collect its PID
-                nohup make serve > /dev/null 2>&1 &
+                nohup make serve > $WORKSPACE/server.log 2>&1 &
                 export SERVERPID=$!
 
                 cd -
@@ -52,4 +55,7 @@
     publishers:
         - junit:
             results: junit.xml
+        - archive:
+            artifacts: 'server.log'
+            allow-empty: 'true'
         - mark-node-offline
