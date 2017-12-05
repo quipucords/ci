@@ -111,6 +111,14 @@
   when:
     - ssh_public_key_file is defined
 
+- name: Set authorized key from file for scanadminpwd.
+  authorized_key:
+    user: scanadminpwd
+    state: present
+    key: "{{ ssh_public_key_file }}"
+  when:
+    - ssh_public_key_file is defined
+
 - name: Set authorized key from file for scanbasic.
   authorized_key:
     user: scanbasic
