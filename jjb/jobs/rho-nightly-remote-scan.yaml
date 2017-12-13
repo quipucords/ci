@@ -1,8 +1,8 @@
-- job-template:
-    name: 'rho-nightly-remote-scan-{config}'
+- job:
+    name: 'rho-nightly-remote-scan'
     node: 'f25-np'
     triggers:
-        - timed: '{time}'
+        - timed: '@midnight'
     scm:
         - git:
             url: https://github.com/quipucords/camayoc.git
@@ -23,13 +23,16 @@
     builders:
         - config-file-provider:
             files:
-              - file-id: '{config-file-id}'
+              - file-id: '62cf0ccc-220e-4177-9eab-f39701bff8d7'
                 target: 'camayoc/config.yaml'
         - shining-panda:
             build-environment: virtualenv
             python-version: System-CPython-3
             nature: shell
+            system-site-packages: true
             command: |
+                sudo dnf -y install libselinux-python3
+
                 # Make sure the path $HOME/.ssh/id_rsa is a valid path in order
                 # to not fail the rho auth validation for the sshkeypath. Even
                 # though this will be an empty file, the SSH key used will come
@@ -62,10 +65,6 @@
                 sudo ln -s "${{PWD}}/rho/library" /usr/share/ansible/rho/
                 sudo ln -s "${{PWD}}/rho/roles" /usr/share/ansible/rho/
                 export XDG_CONFIG_HOME=$PWD
-                # begin work around for issue #15
-                # see https://github.com/quipucords/ci/issues/15
-                pip install ansible==2.3.2
-                # end work around
                 set +e
                 pytest -v --junit-xml junit.xml camayoc/camayoc/tests/remote/
                 set -e
