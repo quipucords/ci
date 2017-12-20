@@ -50,20 +50,20 @@
                 concurrency=
                     multiprocessing
                     thread
-                data_file=${{PWD}}/.coverage
+                data_file=${PWD}/.coverage
                 source=
-                    ${{PWD}}/rho/rho
+                    ${PWD}/rho/rho
                 EOF
 
-                export COVERAGE_PROCESS_START="${{PWD}}/.coveragerc"
+                export COVERAGE_PROCESS_START="${PWD}/.coveragerc"
                 RHO="$(which rho)"
-                sed -i '/#!/a import coverage; coverage.process_startup()' "${{RHO}}"
+                sed -i '/#!/a import coverage; coverage.process_startup()' "${RHO}"
 
                 # Link RHO ansible modules
                 sudo mkdir -p /usr/share/ansible/rho/
-                sudo ln -s "${{PWD}}/rho/rho_playbook.yml" /usr/share/ansible/rho/
-                sudo ln -s "${{PWD}}/rho/library" /usr/share/ansible/rho/
-                sudo ln -s "${{PWD}}/rho/roles" /usr/share/ansible/rho/
+                sudo ln -s "${PWD}/rho/rho_playbook.yml" /usr/share/ansible/rho/
+                sudo ln -s "${PWD}/rho/library" /usr/share/ansible/rho/
+                sudo ln -s "${PWD}/rho/roles" /usr/share/ansible/rho/
                 export XDG_CONFIG_HOME=$PWD
                 set +e
                 pytest -v --junit-xml junit.xml camayoc/camayoc/tests/remote/
