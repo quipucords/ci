@@ -25,9 +25,11 @@
             files:
               - file-id: '2c2b5dc8-3794-4d62-b49a-c3968cd5843a'
                 target: 'camayoc/config.yaml'
+        - shell: |
+            sudo dnf install -y python36
         - shining-panda:
             build-environment: virtualenv
-            python-version: System-CPython-3
+            python-version: System-CPython-3.6
             nature: shell
             command: |
                 export XDG_CONFIG_HOME=$PWD
