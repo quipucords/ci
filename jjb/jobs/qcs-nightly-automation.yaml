@@ -41,7 +41,7 @@
                 pip install -r requirements.txt
                 make server-init
                 # run server in background and collect its PID
-                nohup make serve QPC_DISABLE_AUTHENTICATION=True > $WORKSPACE/server.log 2>&1 &
+                nohup make serve > $WORKSPACE/server.log 2>&1 &
                 export SERVERPID=$!
 
                 cd -
