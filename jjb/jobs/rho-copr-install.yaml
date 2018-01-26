@@ -1,23 +1,23 @@
 - job-template:
-    name: 'rho-copr-install-{os}'
-    node: '{os}-np'
+    name: 'rho-copr-install-{distro}'
+    node: '{distro}-os'
     triggers:
         - timed: '@midnight'
     wrappers:
         - inject:
             properties-content: |
-                OS={os}
+                DISTRO={distro}
         - credentials-binding:
             - file:
                 credential-id: d7ad70b5-0d27-47bb-882b-b50ebe39c5e3
                 variable: RHEL7_REPO
     builders:
         - shell: |
-            if [ "${{OS}}" = "rhel7" ]; then
+            if [ "${{DISTRO}}" = "rhel7" ]; then
                 sudo cp "${{RHEL7_REPO}}" /etc/yum.repos.d
 
             fi
-            if [[ "${{OS}}" != f* ]]; then
+            if [[ "${{DISTRO}}" != f* ]]; then
                 sudo rpm -Uvh https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm || true
             fi
             sudo wget -O /etc/yum.repos.d/rho.repo https://copr.fedorainfracloud.org/coprs/chambridge/rho/repo/{repo}/chambridge-rho-{repo}.repo

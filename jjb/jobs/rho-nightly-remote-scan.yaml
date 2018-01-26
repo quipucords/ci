@@ -1,6 +1,6 @@
 - job:
     name: 'rho-nightly-remote-scan'
-    node: 'f25-np'
+    node: 'f25-os'
     triggers:
         - timed: '@midnight'
     scm:
