@@ -1,6 +1,6 @@
 - job:
     name: 'qcs-nightly-automation'
-    node: 'f25-os'
+    node: 'f27-os'
     triggers:
         - timed: '@midnight'
     scm:
@@ -10,13 +10,11 @@
             branches:
                 - '*/master'
             skip-tag: true
-        - git:
-            url: https://github.com/quipucords/quipucords.git
-            basedir: quipucords
-            branches:
-                - '*/master'
-            skip-tag: true
     wrappers:
+        - credentials-binding:
+            - file:
+                credential-id: 4c692211-c5e1-4354-8e1b-b9d0276c29d9
+                variable: ID_JENKINS_RSA
         - ssh-agent-credentials:
             users:
                 - '390bdc1f-73c6-457e-81de-9e794478e0e'
@@ -25,8 +23,6 @@
             files:
               - file-id: '2c2b5dc8-3794-4d62-b49a-c3968cd5843a'
                 target: 'camayoc/config.yaml'
-        - shell: |
-            sudo dnf install -y python36
         - shining-panda:
             build-environment: virtualenv
             python-version: System-CPython-3.6
@@ -34,30 +30,26 @@
             command: |
                 export XDG_CONFIG_HOME=$PWD
                 mkdir -p /home/jenkins/.ssh
-                touch /home/jenkins/.ssh/id_rsa
+                cp "${ID_JENKINS_RSA}" /home/jenkins/.ssh/id_rsa
                 chmod 0600 /home/jenkins/.ssh/id_rsa
-                cd quipucords
-                sudo dnf install -y python-tools
-                pip install -r requirements.txt
-                make server-init
-                # run server in background and collect its PID
-                nohup make serve > $WORKSPACE/server.log 2>&1 &
-                export SERVERPID=$!
 
-                cd -
+                echo "OPTIONS=--log-driver=journald" > docker.conf
+                echo "DOCKER_CERT_PATH=/etc/docker" >> docker.conf
+                echo "INSECURE_REGISTRY=\"--insecure-registry ${DOCKER_REGISTRY}\"" >> docker.conf
+                sudo cp docker.conf /etc/sysconfig/docker
+                sudo systemctl start docker
+                sudo docker pull "${DOCKER_REGISTRY}/quipucords/quipucords:latest"
+                sudo docker run -d -p "443:443" -v /tmp:/tmp -v /home/jenkins/.ssh:/home/jenkins/.ssh -i "${DOCKER_REGISTRY}/quipucords/quipucords:latest"
+
+                sudo wget -O /etc/yum.repos.d/chambridge-qpc-fedora-27.repo https://copr.fedorainfracloud.org/coprs/chambridge/qpc/repo/fedora-27/chambridge-qpc-fedora-27.repo
+                sudo dnf -y install qpc
+
                 pip install ./camayoc[dev]
 
                 set +e
                 py.test -v --junit-xml ${WORKSPACE}/junit.xml camayoc/camayoc/tests/qcs
                 set -e
-
-                # kill the server running in the background
-                kill -n 9 $SERVERPID
-
     publishers:
         - junit:
             results: junit.xml
-        - archive:
-            artifacts: 'server.log'
-            allow-empty: 'true'
         - mark-node-offline
