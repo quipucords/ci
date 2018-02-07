@@ -33,6 +33,8 @@
                 cp "${ID_JENKINS_RSA}" /home/jenkins/.ssh/id_rsa
                 chmod 0600 /home/jenkins/.ssh/id_rsa
 
+                sed -i "s/{jenkins_slave_ip}/${OPENSTACK_PUBLIC_IP}/" camayoc/config.yaml
+
                 echo "OPTIONS=--log-driver=journald" > docker.conf
                 echo "DOCKER_CERT_PATH=/etc/docker" >> docker.conf
                 echo "INSECURE_REGISTRY=\"--insecure-registry ${DOCKER_REGISTRY}\"" >> docker.conf
