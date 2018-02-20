@@ -21,7 +21,7 @@
     builders:
         - config-file-provider:
             files:
-              - file-id: '2c2b5dc8-3794-4d62-b49a-c3968cd5843a'
+              - file-id: '62cf0ccc-220e-4177-9eab-f39701bff8d7'
                 target: 'camayoc/config.yaml'
         - shining-panda:
             build-environment: virtualenv
