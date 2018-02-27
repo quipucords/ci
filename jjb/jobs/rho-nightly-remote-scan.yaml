@@ -66,7 +66,7 @@
                 sudo ln -s "${PWD}/rho/roles" /usr/share/ansible/rho/
                 export XDG_CONFIG_HOME=$PWD
                 set +e
-                pytest -v --junit-xml junit.xml camayoc/camayoc/tests/remote/
+                pytest -v --junit-xml junit.xml camayoc/camayoc/tests/remote/rho/
                 set -e
 
                 coverage combine
