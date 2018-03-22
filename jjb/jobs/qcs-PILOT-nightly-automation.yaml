@@ -23,11 +23,6 @@
             files:
               - file-id: '62cf0ccc-220e-4177-9eab-f39701bff8d7'
                 target: 'camayoc/config.yaml'
-        - copyartifact:
-                project: qpc_docker_beta
-                filter: quipucords.*.tar.gz
-                target: ${WORKSPACE}/container/
-                stable: true
 
         - shining-panda:
             build-environment: virtualenv
@@ -39,9 +34,6 @@
                 cp "${ID_JENKINS_RSA}" /home/jenkins/.ssh/id_rsa
                 chmod 0600 /home/jenkins/.ssh/id_rsa
                 
-                # rename container to something without long hash
-                mv ${WORKSPACE}/container/quipucords* quipucords.pilot.tar.gz
-
                 sed -i "s/{jenkins_slave_ip}/${OPENSTACK_PUBLIC_IP}/" camayoc/config.yaml
 
                 echo "OPTIONS=--log-driver=journald" > docker.conf
@@ -49,6 +41,8 @@
                 sudo cp docker.conf /etc/sysconfig/docker
                 sudo systemctl start docker
                 echo "load docker container from tarball"
+                curl -k -O -sSL https://github.com/quipucords/quipucords/releases/download/0.0.1-pilot/quipucords.pilot.e9ccd8cc05e41ee555f768eb2692f785aaf7e942.tar.gz
+                mv quipucords.pilot* quipucords.pilot.tar.gz
                 sudo docker load -i ${WORKSPACE}/quipucords.pilot.tar.gz
 
                 # make log dir to save server logs
