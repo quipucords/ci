@@ -1,0 +1,92 @@
+- job-template:
+    name: 'qcs-PILOT-container-install-{distro}'
+    node: '{distro}-os'
+    triggers:
+        - timed: '@midnight'
+    scm:
+        - git:
+            url: https://github.com/quipucords/ci.git
+            basedir: ci
+            skip-tag: true
+            branches:
+              - origin/issues/50
+    wrappers:
+        - inject:
+            properties-content: |
+                DISTRO={distro}
+        - credentials-binding:
+            - file:
+                credential-id: 4c692211-c5e1-4354-8e1b-b9d0276c29d9
+                variable: ID_JENKINS_RSA
+        - ssh-agent-credentials:
+            users:
+                - '390bdc1f-73c6-457e-81de-9e794478e0e'
+    builders:
+        - config-file-provider:
+            files:
+              - file-id: '62cf0ccc-220e-4177-9eab-f39701bff8d7'
+                target: 'camayoc/config.yaml'
+
+        - shining-panda:
+            build-environment: virtualenv
+            python-version: Default-System-Python2
+            nature: shell
+            command: |
+                export XDG_CONFIG_HOME=$PWD
+                mkdir -p /home/jenkins/.ssh
+                cp "${{ID_JENKINS_RSA}}" /home/jenkins/.ssh/id_rsa
+                chmod 0600 /home/jenkins/.ssh/id_rsa
+
+                set +e # don't want to fail if epel is allready installed
+                if [ "${{DISTRO}}" = "rhel7" ]; then
+                        wget http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+                        sudo rpm -ivh epel-release-latest-7.noarch.rpm
+                fi
+                if [ "${{DISTRO}}" = "rhel6" ]; then
+                        wget http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
+                        sudo rpm -ivh epel-release-6-8.noarch.rpm
+                        curl -k -O -sSL https://yum.dockerproject.org/repo/main/centos/6/Packages/docker-engine-1.7.1-1.el6.x86_64.rpm
+                        sudo yum localinstall -nogpgcheck docker-engine-1.7.1-1.el6.x86_64.rpm
+                        sudo service docker start
+                        sudo docker run hello-world
+                        sudo chkconfig docker on
+                fi
+                set -e
+                
+                echo "OPTIONS=--log-driver=journald" > docker.conf
+                echo "DOCKER_CERT_PATH=/etc/docker" >> docker.conf
+                sudo cp docker.conf /etc/sysconfig/docker
+
+                if [ "${{DISTRO}}" = "rhel7" ] || [ "${{DISTRO}}" = "f27" ]; then
+                        sudo systemctl start docker
+                fi
+                echo "load docker container from tarball"
+                curl -k -O -sSL https://github.com/quipucords/quipucords/releases/download/0.0.1-pilot/quipucords.pilot.e9ccd8cc05e41ee555f768eb2692f785aaf7e942.tar.gz
+                mv quipucords.pilot* quipucords.pilot.tar.gz
+                sudo docker load -i ${{WORKSPACE}}/quipucords.pilot.tar.gz
+
+                # make log dir to save server logs
+                mkdir ${{WORKSPACE}}/log
+                # run docker container, mounting local volumes for logs and ssh keys 
+                sudo docker run -d -p "443:443" -v /tmp:/tmp -v /home/jenkins/.ssh:/home/jenkins/.ssh -v ${{WORKSPACE}}/log:/var/log -i "quipucords:pilot"
+
+                # Install qpc from rpm
+                sudo wget -O /etc/yum.repos.d/{repo-name} {repo-url}
+                # build specific qpc package for pilot
+                sudo {package-manager} -y install {rpm-name}
+
+                pip install pexpect nose
+                set +e
+                nosetests --with-xunit --xunit-file=junit.xml ci/scripts/quipucords/pilot/install/test_install.py
+                set -e
+
+                # Archive server logs to aid in analyzing test failures
+                cd ${{WORKSPACE}}
+                tar -cvzf server-logs.tar.gz ${{WORKSPACE}}/log
+    publishers:
+        - junit:
+            results: junit.xml
+        - archive:
+            artifacts: 'server-logs.tar.gz'
+            allow-empty: false
+        - mark-node-offline
