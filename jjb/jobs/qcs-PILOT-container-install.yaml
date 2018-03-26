@@ -9,7 +9,7 @@
             basedir: ci
             skip-tag: true
             branches:
-              - origin/issues/50
+              - master
     wrappers:
         - inject:
             properties-content: |
