@@ -41,6 +41,7 @@
     jobs:
         - 'qcs-master-container-install-{distro}'
     distro:
+        - 'f26'
         - 'f27'
         - 'rhel7'
         - 'rhel6'
