@@ -29,9 +29,20 @@
             repo-url: 'https://copr.fedorainfracloud.org/coprs/chambridge/qpc/repo/epel-7/chambridge-qpc-epel-7.repo'
             rpm-name: 'qpc-0.0.1-1.git.342.44b5e58.el7.centos'
             package-manager: 'yum'
-        
+
         - 'rhel6':
             repo-name: 'chambridge-qpc-epel-6.repo'
             repo-url: 'https://copr.fedorainfracloud.org/coprs/chambridge/qpc/repo/epel-6/chambridge-qpc-epel-6.repo'
             rpm-name: 'qpc-0.0.1-1.git.342.44b5e58.el6'
             package-manager: 'yum'
+
+- project:
+    name:  quipucords-master-container-install
+    jobs:
+        - 'qcs-master-container-install-{distro}'
+    distro:
+        - 'f26'
+        - 'f27'
+        - 'rhel7'
+        - 'rhel6'
+        - 'centos7'

@@ -1,0 +1,92 @@
+- job-template:
+    name: 'qcs-master-container-install-{distro}'
+    node: '{distro}-os'
+    triggers:
+        - timed: '@midnight'
+    scm:
+        - git:
+            url: https://github.com/quipucords/ci.git
+            basedir: ci
+            skip-tag: true
+            branches:
+              - master
+    wrappers:
+        - inject:
+            properties-content: |
+                DISTRO={distro}
+        - credentials-binding:
+            - file:
+                credential-id: 4c692211-c5e1-4354-8e1b-b9d0276c29d9
+                variable: ID_JENKINS_RSA
+        - ssh-agent-credentials:
+            users:
+                - '390bdc1f-73c6-457e-81de-9e794478e0e'
+    builders:
+        - config-file-provider:
+            files:
+              - file-id: '62cf0ccc-220e-4177-9eab-f39701bff8d7'
+                target: 'camayoc/config.yaml'
+        - copyartifact:
+                project: qpc_docker_img_poll
+                filter: quipucords.*.tar.gz
+                stable: true
+        - config-file-provider:
+            files:
+              - file-id: '0f157b1a-7068-4c75-a672-3b1b90f97ddd'
+                target: '${{WORKSPACE}}/rhel7-rcm-internal.repo'
+        - shining-panda:
+            build-environment: virtualenv
+            python-version: System-CPython-2
+            nature: shell
+            command: |
+                export XDG_CONFIG_HOME=$PWD
+                mkdir -p /home/jenkins/.ssh
+                cp "${{ID_JENKINS_RSA}}" /home/jenkins/.ssh/id_rsa
+                chmod 0600 /home/jenkins/.ssh/id_rsa
+
+                echo "setup docker configuration"
+                echo "OPTIONS=--log-driver=journald" > docker.conf
+                echo "DOCKER_CERT_PATH=/etc/docker" >> docker.conf
+                sudo cp docker.conf /etc/sysconfig/docker
+
+                set +e # don't want to fail if epel is allready installed
+                if [ "${{DISTRO}}" = "rhel7" ]; then
+                        sudo cp ${{WORKSPACE}}/rhel7-rcm-internal.repo /etc/yum.repos.d/rhel7-rcm-internal.repo
+                        wget http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+                        sudo rpm -ivh epel-release-latest-7.noarch.rpm
+                fi
+                if [ "${{DISTRO}}" = "rhel6" ]; then
+                        wget http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
+                        sudo rpm -ivh epel-release-6-8.noarch.rpm
+                        sudo yum clean all
+                        sudo yum-config-manager --disable base
+                        sudo yum-config-manager --disable optional
+                fi
+                sudo yum -y install ansible
+                set -e
+
+                echo "extract the installer into ${{WORKSPACE}}/install"
+                tar -xvzf ${{WORKSPACE}}/quipucords.install.tar.gz
+
+                echo "copy container to installer packages directory"
+                mkdir -p ${{WORKSPACE}}/install/packages
+                mv quipucords.1.0.0.tar.gz	${{WORKSPACE}}/install/packages/
+
+                echo "Execute ansible playbook to install"
+                sudo ansible-playbook -v qpc_playbook.yml -e server_install_dir=${{WORKSPACE}}
+
+                pip install pexpect nose
+                set +e
+                nosetests --with-xunit --xunit-file=junit.xml ci/scripts/quipucords/master/install/test_install.py
+                set -e
+
+                # Archive server logs to aid in analyzing test failures
+                cd ${{WORKSPACE}}
+                tar -cvzf server-logs.tar.gz ${{WORKSPACE}}/log
+    publishers:
+        - junit:
+            results: junit.xml
+        - archive:
+            artifacts: 'server-logs.tar.gz'
+            allow-empty: false
+        - mark-node-offline
