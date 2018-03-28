@@ -30,7 +30,10 @@
                 project: qpc_docker_img_poll
                 filter: quipucords.*.tar.gz
                 stable: true
-
+        - config-file-provider:
+            files:
+              - file-id: '0f157b1a-7068-4c75-a672-3b1b90f97ddd'
+                target: '${{WORKSPACE}}/rhel7-rcm-internal.repo'
         - shining-panda:
             build-environment: virtualenv
             python-version: Default-System-Python2
@@ -48,12 +51,16 @@
 
                 set +e # don't want to fail if epel is allready installed
                 if [ "${{DISTRO}}" = "rhel7" ]; then
+                        sudo cp ${{WORKSPACE}}/rhel7-rcm-internal.repo /etc/yum.repos.d/rhel7-rcm-internal.repo
                         wget http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
                         sudo rpm -ivh epel-release-latest-7.noarch.rpm
                 fi
                 if [ "${{DISTRO}}" = "rhel6" ]; then
                         wget http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
                         sudo rpm -ivh epel-release-6-8.noarch.rpm
+                        sudo yum clean all
+                        sudo yum-config-manager --disable base
+                        sudo yum-config-manager --disable optional
                 fi
                 sudo yum -y install ansible
                 set -e
