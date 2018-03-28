@@ -73,7 +73,7 @@
                 mv quipucords.1.0.0.tar.gz	${{WORKSPACE}}/install/packages/
 
                 echo "Execute ansible playbook to install"
-                sudo ansible-playbook -v qpc_playbook.yml -e server_install_dir=${{WORKSPACE}}
+                sudo ansible-playbook -v ${{WORKSPACE}}/install/qpc_playbook.yml -e server_install_dir=${{WORKSPACE}}
 
                 pip install pexpect nose
                 set +e
