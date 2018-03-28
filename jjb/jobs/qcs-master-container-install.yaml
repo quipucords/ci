@@ -36,7 +36,7 @@
                 target: '${{WORKSPACE}}/rhel7-rcm-internal.repo'
         - shining-panda:
             build-environment: virtualenv
-            python-version: Default-System-Python2
+            python-version: System-CPython-2
             nature: shell
             command: |
                 export XDG_CONFIG_HOME=$PWD
