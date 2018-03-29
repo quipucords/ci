@@ -14,32 +14,12 @@
     repo: 'epel-7'
 
 - project:
-    name:  quipucords-PILOT-container-install
+    name:  quipucords-container-install
     jobs:
-        - 'qcs-PILOT-container-install-{distro}'
-    distro:
-        - 'f27':
-            repo-name: 'chambridge-qpc-fedora-27.repo'
-            repo-url: 'https://copr.fedorainfracloud.org/coprs/chambridge/qpc/repo/fedora-27/chambridge-qpc-fedora-27.repo'
-            rpm-name: 'qpc-0.0.1-1.git.342.44b5e58.fc27.noarch'
-            package-manager: 'dnf'
-
-        - 'rhel7':
-            repo-name: 'chambridge-qpc-epel-7.repo'
-            repo-url: 'https://copr.fedorainfracloud.org/coprs/chambridge/qpc/repo/epel-7/chambridge-qpc-epel-7.repo'
-            rpm-name: 'qpc-0.0.1-1.git.342.44b5e58.el7.centos'
-            package-manager: 'yum'
-
-        - 'rhel6':
-            repo-name: 'chambridge-qpc-epel-6.repo'
-            repo-url: 'https://copr.fedorainfracloud.org/coprs/chambridge/qpc/repo/epel-6/chambridge-qpc-epel-6.repo'
-            rpm-name: 'qpc-0.0.1-1.git.342.44b5e58.el6'
-            package-manager: 'yum'
-
-- project:
-    name:  quipucords-master-container-install
-    jobs:
-        - 'qcs-master-container-install-{distro}'
+        - 'qcs-{release}-container-install-{distro}'
+    release:
+        - 'master'
+        - 'PILOT'
     distro:
         - 'f26'
         - 'f27'
