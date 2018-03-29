@@ -1,5 +1,5 @@
 - job-template:
-    name: 'qcs-PILOT-container-install-{distro}'
+    name: 'qcs-{release}-container-install-{distro}'
     node: '{distro}-os'
     triggers:
         - timed: '@midnight'
@@ -14,6 +14,7 @@
         - inject:
             properties-content: |
                 DISTRO={distro}
+                RELEASE={release}
         - credentials-binding:
             - file:
                 credential-id: 4c692211-c5e1-4354-8e1b-b9d0276c29d9
@@ -26,10 +27,17 @@
             files:
               - file-id: '62cf0ccc-220e-4177-9eab-f39701bff8d7'
                 target: 'camayoc/config.yaml'
-
+        - copyartifact:
+                project: qpc_docker_img_poll
+                filter: quipucords.*.tar.gz
+                stable: true
+        - config-file-provider:
+            files:
+              - file-id: '0f157b1a-7068-4c75-a672-3b1b90f97ddd'
+                target: '${{WORKSPACE}}/rhel7-rcm-internal.repo'
         - shining-panda:
             build-environment: virtualenv
-            python-version: Default-System-Python2
+            python-version: System-CPython-2
             nature: shell
             command: |
                 export XDG_CONFIG_HOME=$PWD
@@ -37,47 +45,47 @@
                 cp "${{ID_JENKINS_RSA}}" /home/jenkins/.ssh/id_rsa
                 chmod 0600 /home/jenkins/.ssh/id_rsa
 
+                echo "setup docker configuration"
+                echo "OPTIONS=--log-driver=journald" > docker.conf
+                echo "DOCKER_CERT_PATH=/etc/docker" >> docker.conf
+                sudo cp docker.conf /etc/sysconfig/docker
+
                 set +e # don't want to fail if epel is allready installed
                 if [ "${{DISTRO}}" = "rhel7" ]; then
+                        sudo cp ${{WORKSPACE}}/rhel7-rcm-internal.repo /etc/yum.repos.d/rhel7-rcm-internal.repo
                         wget http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
                         sudo rpm -ivh epel-release-latest-7.noarch.rpm
                 fi
                 if [ "${{DISTRO}}" = "rhel6" ]; then
                         wget http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
                         sudo rpm -ivh epel-release-6-8.noarch.rpm
-                        curl -k -O -sSL https://yum.dockerproject.org/repo/main/centos/6/Packages/docker-engine-1.7.1-1.el6.x86_64.rpm
-                        sudo yum localinstall -nogpgcheck docker-engine-1.7.1-1.el6.x86_64.rpm
-                        sudo service docker start
-                        sudo docker run hello-world
-                        sudo chkconfig docker on
+                        sudo yum clean all
+                        sudo yum-config-manager --disable base
+                        sudo yum-config-manager --disable optional
                 fi
+                sudo yum -y install ansible
                 set -e
-                
-                echo "OPTIONS=--log-driver=journald" > docker.conf
-                echo "DOCKER_CERT_PATH=/etc/docker" >> docker.conf
-                sudo cp docker.conf /etc/sysconfig/docker
 
-                if [ "${{DISTRO}}" = "rhel7" ] || [ "${{DISTRO}}" = "f27" ]; then
-                        sudo systemctl start docker
+                if [ "${{RELEASE}}" = "PILOT" ]; then
+                        rm quipucords.*.tar.gz
+                        echo "load docker container from tarball"
+                        curl -k -O -sSL https://github.com/quipucords/quipucords/releases/download/0.0.41-pilot/quipucords.install.tar.gz
                 fi
-                echo "load docker container from tarball"
-                curl -k -O -sSL https://github.com/quipucords/quipucords/releases/download/0.0.1-pilot/quipucords.pilot.e9ccd8cc05e41ee555f768eb2692f785aaf7e942.tar.gz
-                mv quipucords.pilot* quipucords.pilot.tar.gz
-                sudo docker load -i ${{WORKSPACE}}/quipucords.pilot.tar.gz
+                echo "extract the installer into ${{WORKSPACE}}/install"
+                tar -xvzf ${{WORKSPACE}}/quipucords.install.tar.gz
 
-                # make log dir to save server logs
-                mkdir ${{WORKSPACE}}/log
-                # run docker container, mounting local volumes for logs and ssh keys 
-                sudo docker run -d -p "443:443" -v /tmp:/tmp -v /home/jenkins/.ssh:/home/jenkins/.ssh -v ${{WORKSPACE}}/log:/var/log -i "quipucords:pilot"
+                if [ "${{RELEASE}}" = "master" ]; then
+                        echo "copy container to installer packages directory"
+                        mkdir -p ${{WORKSPACE}}/install/packages
+                        mv quipucords.1.0.0.tar.gz	${{WORKSPACE}}/install/packages/
+                fi
 
-                # Install qpc from rpm
-                sudo wget -O /etc/yum.repos.d/{repo-name} {repo-url}
-                # build specific qpc package for pilot
-                sudo {package-manager} -y install {rpm-name}
+                echo "Execute ansible playbook to install"
+                sudo ansible-playbook -v ${{WORKSPACE}}/install/qpc_playbook.yml -e server_install_dir=${{WORKSPACE}}
 
                 pip install pexpect nose
                 set +e
-                nosetests --with-xunit --xunit-file=junit.xml ci/scripts/quipucords/pilot/install/test_install.py
+                nosetests --with-xunit --xunit-file=junit.xml ci/scripts/quipucords/master/install/test_install.py
                 set -e
 
                 # Archive server logs to aid in analyzing test failures
