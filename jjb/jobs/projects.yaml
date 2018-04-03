@@ -16,7 +16,7 @@
 - project:
     name:  quipucords-container-install
     jobs:
-        - 'qcs-{release}-container-install-{distro}'
+        - 'qpc-{release}-container-install-{distro}'
     release:
         - 'master'
         - 'PILOT'
