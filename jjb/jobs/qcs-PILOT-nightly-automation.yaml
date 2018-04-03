@@ -1,5 +1,5 @@
 - job:
-    name: 'qcs-PILOT-nightly-automation'
+    name: 'qpc-PILOT-nightly-automation'
     node: 'f27-os'
     triggers:
         - timed: '@midnight'
@@ -66,8 +66,8 @@
                 pip install ./camayoc[dev]
 
                 set +e
-                py.test -c pytest.ini -v --junit-xml ${WORKSPACE}/junit.xml camayoc/camayoc/tests/qcs/
-                set -e  
+                py.test -c pytest.ini -v --junit-xml ${WORKSPACE}/junit.xml camayoc/camayoc/tests/qpc/
+                set -e
                 # Archive server logs to aid in analyzing test failures
                 cd ${WORKSPACE}
                 tar -cvzf server-logs.tar.gz ${WORKSPACE}/log

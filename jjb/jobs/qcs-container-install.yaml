@@ -1,5 +1,5 @@
 - job-template:
-    name: 'qcs-{release}-container-install-{distro}'
+    name: 'qpc-{release}-container-install-{distro}'
     node: '{distro}-os'
     triggers:
         - timed: '@midnight'

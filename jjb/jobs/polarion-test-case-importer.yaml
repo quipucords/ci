@@ -38,7 +38,7 @@
                 pip install betelgeuse
 
                 #betelgeuse requirement \
-                #    camayoc/tests/qcs \
+                #    camayoc/tests/qpc \
                 #    "${POLARION_PROJECT}"
 
                 export PYTHONPATH="${PWD}"
@@ -52,7 +52,7 @@
                 betelgeuse --config-module "betelgeuse_config" test-case \
                     --response-property "camayoc=test-cases" \
                     --automation-script-format "https://github.com/quipucords/camayoc/blob/master/{path}#L{line_number}" \
-                    camayoc/tests/qcs \
+                    camayoc/tests/qpc \
                     "${POLARION_PROJECT}" \
                     camayoc-test-cases.xml
 
