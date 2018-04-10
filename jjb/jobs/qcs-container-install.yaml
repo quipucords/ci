@@ -33,13 +33,9 @@
                 stable: true
         - config-file-provider:
             files:
-              - file-id: '0f157b1a-7068-4c75-a672-3b1b90f97ddd'
-                target: '${{WORKSPACE}}/rhel7-rcm-internal.repo'
-        - shining-panda:
-            build-environment: virtualenv
-            python-version: System-CPython-2
-            nature: shell
-            command: |
+              - file-id: '{repo-file}'
+                target: '${{WORKSPACE}}/{distro}-custom.repo'
+        - shell: |
                 export XDG_CONFIG_HOME=$PWD
                 mkdir -p /home/jenkins/.ssh
                 cp "${{ID_JENKINS_RSA}}" /home/jenkins/.ssh/id_rsa
@@ -52,18 +48,22 @@
 
                 set +e # don't want to fail if epel is allready installed
                 if [ "${{DISTRO}}" = "rhel7" ]; then
-                        sudo cp ${{WORKSPACE}}/rhel7-rcm-internal.repo /etc/yum.repos.d/rhel7-rcm-internal.repo
+                        sudo cp ${{WORKSPACE}}/rhel7-custom.repo /etc/yum.repos.d/rhel7-rcm-internal.repo
                         wget http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
                         sudo rpm -ivh epel-release-latest-7.noarch.rpm
                 fi
                 if [ "${{DISTRO}}" = "rhel6" ]; then
+                        sudo cp ${{WORKSPACE}}/rhel6-custom.repo /etc/yum.repos.d/rhel6-rcm-internal.repo
                         wget http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
                         sudo rpm -ivh epel-release-6-8.noarch.rpm
                         sudo yum clean all
                         sudo yum-config-manager --disable base
                         sudo yum-config-manager --disable optional
                 fi
+
+                sudo yum -y install python-pip
                 sudo yum -y install ansible
+
                 set -e
 
                 if [ "${{RELEASE}}" = "PILOT" ]; then
@@ -83,7 +83,7 @@
                 echo "Execute ansible playbook to install"
                 sudo ansible-playbook -v ${{WORKSPACE}}/install/qpc_playbook.yml -e server_install_dir=${{WORKSPACE}}
 
-                pip install pexpect nose
+                sudo pip install pexpect nose
                 set +e
                 nosetests --with-xunit --xunit-file=junit.xml ci/scripts/quipucords/master/install/test_install.py
                 set -e
