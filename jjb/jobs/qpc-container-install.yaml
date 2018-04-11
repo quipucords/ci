@@ -61,8 +61,7 @@
                         sudo yum-config-manager --disable optional
                 fi
 
-                sudo yum -y install python-pip
-                sudo yum -y install ansible
+                sudo yum -y install ansible python-pip
 
                 set -e
 
