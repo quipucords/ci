@@ -40,7 +40,7 @@
                 echo "INSECURE_REGISTRY=\"--insecure-registry ${DOCKER_REGISTRY}\"" >> docker.conf
                 sudo cp docker.conf /etc/sysconfig/docker
                 sudo systemctl start docker
-                sudo docker pull "${DOCKER_REGISTRY}/quipucords/quipucords:latest"
+                sudo docker pull "${DOCKER_REGISTRY}/quipucords/quipucords:1.0.0"
                 # make log dir to save server logs
                 mkdir ${WORKSPACE}/log
                 # run container binding local ssh keys and log dir to the container
