@@ -19,6 +19,12 @@
             users:
                 - '390bdc1f-73c6-457e-81de-9e794478e0e'
     builders:
+        - copyartifact:
+            project: qpc_docker_img_poll
+            filter: quipucords.1.0.0.tar.gz
+            target: ${WORKSPACE}
+            stable: true
+
         - config-file-provider:
             files:
               - file-id: '62cf0ccc-220e-4177-9eab-f39701bff8d7'
@@ -40,11 +46,11 @@
                 echo "INSECURE_REGISTRY=\"--insecure-registry ${DOCKER_REGISTRY}\"" >> docker.conf
                 sudo cp docker.conf /etc/sysconfig/docker
                 sudo systemctl start docker
-                sudo docker pull "${DOCKER_REGISTRY}/quipucords/quipucords:1.0.0"
+                sudo docker load -i ${WORKSPACE}/quipucords*.tar.gz
                 # make log dir to save server logs
                 mkdir ${WORKSPACE}/log
                 # run container binding local ssh keys and log dir to the container
-                sudo docker run -d -p "443:443" -v /tmp:/tmp -v /home/jenkins/.ssh:/home/jenkins/.ssh -v ${WORKSPACE}/log:/var/log -i "${DOCKER_REGISTRY}/quipucords/quipucords:latest"
+                sudo docker run -d -p "443:443" -v /tmp:/tmp -v /home/jenkins/.ssh:/home/jenkins/.ssh -v ${WORKSPACE}/log:/var/log -i "quipucords:1.0.0"
 
                 sudo wget -O /etc/yum.repos.d/chambridge-qpc-fedora-27.repo https://copr.fedorainfracloud.org/coprs/chambridge/qpc/repo/fedora-27/chambridge-qpc-fedora-27.repo
                 sudo dnf -y install qpc
@@ -63,6 +69,7 @@
                 set +e
                 py.test -c pytest.ini -v --junit-xml ${WORKSPACE}/junit.xml camayoc/camayoc/tests/qpc/
                 set -e
+
                 # Archive server logs to aid in analyzing test failures
                 cd ${WORKSPACE}
                 tar -cvzf server-logs.tar.gz ${WORKSPACE}/log
