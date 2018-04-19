@@ -1,0 +1,58 @@
+- name: Create jenkins group.
+  group:
+    name: jenkins
+
+- name: Create jenkins user.
+  user:
+    createhome: yes
+    group: jenkins
+    home: /home/jenkins
+    name: jenkins
+
+- name: Make .ssh dir for jenkins
+  file:
+    path: /home/jenkins/.ssh
+    state: directory
+    mode: 0700
+    owner: jenkins
+    group: jenkins
+
+- name: Install ssh key for jenkins
+  authorized_key:
+    key: "{{ lookup('file', '{{ jenkins_public_key }}' ) }}"
+    state: present
+    user: jenkins
+
+- name: Allow jenkins to run sudo commands without password.
+  lineinfile:
+    path: /etc/sudoers
+    state: present
+    regexp: '^%jenkins\s'
+    line: '%jenkins ALL=(ALL) NOPASSWD: ALL'
+
+- name: Install custom repo file
+  copy:
+    src: "{{ custom_repo_file }}"
+    dest: /etc/yum.repos.d/custom.repo
+
+- name: Install epel
+  yum_repository:
+    name: epel
+    description: EPEL YUM repo
+    baseurl: "{{ epel_base_url }}"
+    metalink: "{{ epel_metalink }}" 
+    gpgcheck: false
+
+- name: Install required packages.
+  package:
+    name: "{{ item }}"
+    state: installed
+  with_items:
+    - gcc
+    - gcc-c++
+    - git
+    - libffi-devel
+    - libselinux-python
+    - python-devel
+    - python2-pip
+    - yum-utils
