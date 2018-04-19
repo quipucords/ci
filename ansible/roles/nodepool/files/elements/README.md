@@ -220,7 +220,7 @@ Under `Compute>Instances` create instance with `Launch Instance` Specify you
 public key so you will be able to ssh into the machine.  Then associate a
 floating IP to the image and log into it and do any necessary set up.
 
-After done, shut down the instance down. Look under `Compute>Volumes` and see
+After done, shut down the instance. Look under `Compute>Volumes` and see
 what volume is associated with it. May need to make a note of this as it as a
 long UUID like name.
 
