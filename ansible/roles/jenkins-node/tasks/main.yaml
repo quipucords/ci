@@ -8,20 +8,14 @@
     group: jenkins
     home: /home/jenkins
     name: jenkins
-
-- name: Make .ssh dir for jenkins
-  file:
-    path: /home/jenkins/.ssh
-    state: directory
-    mode: 0700
-    owner: jenkins
-    group: jenkins
+    password: $6$elD/JslzxlOEGtd9$DZ.EHUMyOta8UQW5Fqg5aJkNOOUL7.MpSNPXBrZHNFmiH7MfUOODQF.7i0RACHJc2hfd2oM1ClZIkIjGFQsL40
 
 - name: Install ssh key for jenkins
   authorized_key:
     key: "{{ lookup('file', '{{ jenkins_public_key }}' ) }}"
     state: present
     user: jenkins
+    manage_dir: yes
 
 - name: Allow jenkins to run sudo commands without password.
   lineinfile:
@@ -32,8 +26,9 @@
 
 - name: Install custom repo file
   copy:
-    src: "{{ custom_repo_file }}"
+    src: "{{ lookup('file', '{{custom_repo_file}}' ) }}"
     dest: /etc/yum.repos.d/custom.repo
+  when: custom_repo_file is defined
 
 - name: Install epel
   yum_repository:
@@ -42,19 +37,25 @@
     baseurl: "{{ epel_base_url }}"
     metalink: "{{ epel_metalink }}" 
     gpgcheck: false
+  when: ansible_distribution == 'RedHat' and ansible_distribution_major_version <= 7 
 
 - name: Install required packages.
   package:
     name: "{{ item }}"
     state: installed
   with_items:
+    - curl
+    - docker
     - gcc
-    - gcc-c++
     - git
+    - java
     - libffi-devel
     - libselinux-python
+    - openssl-devel
     - python-devel
     - python2-pip
+    - redhat-lsb-core
+    - redhat-rpm-config
+    - vim
+    - wget
     - yum-utils
-    - java-1.8.0-openjdk-devel
-    - java-1.8.0-openjdk
