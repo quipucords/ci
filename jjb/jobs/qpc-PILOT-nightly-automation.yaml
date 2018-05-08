@@ -3,10 +3,21 @@
     node: 'f27-os'
     triggers:
         - timed: '@midnight'
+    properties:
+      - build-blocker:
+        blocking-jobs:
+          - 'qpc-.*nightly-automation'
+        queue-scanning: 'ALL'
     scm:
         - git:
             url: https://github.com/quipucords/camayoc.git
             basedir: camayoc
+            branches:
+                - '*/master'
+            skip-tag: true
+        - git:
+            url: https://github.com/quipucords/ci.git
+            basedir: ci
             branches:
                 - '*/master'
             skip-tag: true
@@ -15,6 +26,9 @@
             - file:
                 credential-id: 4c692211-c5e1-4354-8e1b-b9d0276c29d9
                 variable: ID_JENKINS_RSA
+            - file:
+                credential-id: 50dc19ce-555f-422c-af38-3b5ede422bb4
+                variable: ID_JENKINS_RSA_PUB
         - ssh-agent-credentials:
             users:
                 - '390bdc1f-73c6-457e-81de-9e794478e0e'
@@ -23,6 +37,21 @@
             files:
               - file-id: '62cf0ccc-220e-4177-9eab-f39701bff8d7'
                 target: 'camayoc/config.yaml'
+        - shell: |
+            sudo dnf -y install ansible
+
+            cat > jenkins-slave-hosts <<EOF
+            [jenkins-slave]
+            ${OPENSTACK_PUBLIC_IP}
+
+            [jenkins-slave:vars]
+            ansible_user=jenkins
+            ansible_ssh_extra_args=-o StrictHostKeyChecking=no
+            ssh_public_key_file=$(cat ${ID_JENKINS_RSA_PUB})
+            EOF
+
+            ansible-playbook -b -i jenkins-slave-hosts ci/ansible/sonar-setup-scan-users.yaml
+
 
         - shining-panda:
             build-environment: virtualenv
