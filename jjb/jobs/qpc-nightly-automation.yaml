@@ -5,9 +5,9 @@
         - timed: '@midnight'
     properties:
       - build-blocker:
-        blocking-jobs:
-          - 'qpc-.*nightly-automation'
-        queue-scanning: 'BUILDABLE'
+          blocking-jobs:
+            - 'qpc-.*nightly-automation'
+          queue-scanning: 'BUILDABLE'
     scm:
         - git:
             url: https://github.com/quipucords/camayoc.git
