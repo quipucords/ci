@@ -81,7 +81,7 @@
                 # Install qpc from rpm
                 sudo wget -O /etc/yum.repos.d/group_quipucords-qpc-fedora-27.repo https://copr.fedorainfracloud.org/coprs/g/quipucords/qpc/repo/fedora-27/group_quipucords-qpc-fedora-27.repo
                 # build specific qpc package for pilot
-                sudo dnf -y install qpc-0.0.42-1.git.659.23c2bcb.fc27
+                sudo dnf -y install qpc-0.0.42-1.git.669.98244b2.fc27
 
                 # create pytest configuration file to ignore the insecure
                 # requests warnings that talking to the server over https
