@@ -70,18 +70,18 @@
                 sudo cp docker.conf /etc/sysconfig/docker
                 sudo systemctl start docker
                 echo "load docker container from tarball"
-                curl -k -O -sSL https://github.com/quipucords/quipucords/releases/download/0.0.42-pilot/quipucords.0.0.42.tar.gz
-                sudo docker load -i ${WORKSPACE}/quipucords.0.0.42.tar.gz
+                curl -k -O -sSL https://github.com/quipucords/quipucords/releases/download/0.0.43/quipucords.0.0.43.tar.gz
+                sudo docker load -i ${WORKSPACE}/quipucords.0.0.43.tar.gz
 
                 # make log dir to save server logs
                 mkdir ${WORKSPACE}/log
                 # run docker container, mounting local volumes for logs and ssh keys
-                sudo docker run -d -p "443:443" -v /tmp:/tmp -v /home/jenkins/.ssh:/home/jenkins/.ssh -v ${WORKSPACE}/log:/var/log -i "quipucords:0.0.42"
+                sudo docker run -d -p "443:443" -v /tmp:/tmp -v /home/jenkins/.ssh:/home/jenkins/.ssh -v ${WORKSPACE}/log:/var/log -i "quipucords:0.0.43"
 
                 # Install qpc from rpm
                 sudo wget -O /etc/yum.repos.d/group_quipucords-qpc-fedora-27.repo https://copr.fedorainfracloud.org/coprs/g/quipucords/qpc/repo/fedora-27/group_quipucords-qpc-fedora-27.repo
                 # build specific qpc package for pilot
-                sudo dnf -y install qpc-0.0.42-1.git.669.98244b2.fc27
+                sudo dnf -y install qpc-0.0.43-1.git.693.f398818.fc27
 
                 # create pytest configuration file to ignore the insecure
                 # requests warnings that talking to the server over https
