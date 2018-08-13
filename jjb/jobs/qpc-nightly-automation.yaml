@@ -81,6 +81,9 @@
                 # run container binding local ssh keys and log dir to the container
                 sudo docker run -d -p "443:443" -v /tmp:/tmp -v /home/jenkins/.ssh:/home/jenkins/.ssh -v ${WORKSPACE}/log:/var/log -i "quipucords:1.0.0"
 
+                # get docker container for selenium, standalone chrome
+                sudo docker run --net="host" -d -p 4444:4444 -v /dev/shm:/dev/shm:z -v /tmp:/tmp:z selenium/standalone-chrome-debug:3.14.0-arsenic
+
                 sudo wget -O /etc/yum.repos.d/chambridge-qpc-fedora-27.repo https://copr.fedorainfracloud.org/coprs/chambridge/qpc/repo/fedora-27/chambridge-qpc-fedora-27.repo
                 sudo dnf -y install qpc
 
@@ -96,15 +99,23 @@
                 pip install ./camayoc[dev]
 
                 set +e
+                export SELENIUM_DRIVER=chrome
                 py.test -c pytest.ini -v --junit-xml ${WORKSPACE}/junit.xml camayoc/camayoc/tests/qpc/
+                # Kill chrome container and run firefox tests
+                sudo docker rm $(sudo docker stop $(sudo docker ps -a -q  --filter ancestor="selenium/standalone-chrome-debug:3.14.0-arsenic"))
+
+                export SELENIUM_DRIVER=firefox
+                sudo docker run --net="host" -d -p 4444:4444 -v /dev/shm:/dev/shm:z -v /tmp:/tmp:z selenium/standalone-firefox-debug:3.14.0-arsenic
+                py.test -c pytest.ini -v --junit-xml ${WORKSPACE}/firefox-ui-junit.xml camayoc/camayoc/tests/qpc/ui
                 set -e
 
                 # Archive server logs to aid in analyzing test failures
                 cd ${WORKSPACE}
                 tar -cvzf server-logs.tar.gz ${WORKSPACE}/log
+
     publishers:
         - junit:
-            results: junit.xml
+            results: '*junit.xml'
         - archive:
             artifacts: 'server-logs.tar.gz'
             allow-empty: false
