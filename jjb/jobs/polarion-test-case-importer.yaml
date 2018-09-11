@@ -1,6 +1,6 @@
 - job:
     name: 'polarion-test-case-importer'
-    node: 'f25-os'
+    node: 'f28-os'
     triggers:
         - timed: '@midnight'
     scm:

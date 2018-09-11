@@ -1,6 +1,6 @@
 - job:
     name: 'rho-nightly-automation'
-    node: 'f25-os'
+    node: 'f28-os'
     triggers:
         - timed: '@midnight'
     scm:

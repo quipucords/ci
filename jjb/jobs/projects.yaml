@@ -1,31 +1,29 @@
 - project:
-    name:  rho-copr-install
+    name: rho-copr-install
     jobs:
-        - 'rho-copr-install-{distro}'
+      - 'rho-copr-install-{distro}'
     distro:
-        - 'centos7'
-        - 'f25':
-            repo: 'fedora-25'
-        - 'f26':
-            repo: 'fedora-26'
-        - 'f27':
-            repo: 'fedora-27'
-        - 'rhel7'
+      - 'centos7'
+      - 'f27':
+          repo: 'fedora-27'
+      - 'f28':
+          repo: 'fedora-28'
+      - 'rhel7'
     repo: 'epel-7'
 
 - project:
-    name:  quipucords-container-install
+    name: quipucords-container-install
     jobs:
-        - 'qpc-{release}-container-install-{distro}'
+      - 'qpc-{release}-container-install-{distro}'
     release:
-        - 'master'
-        - 'PILOT'
+      - 'master'
+      - 'released'
     distro:
-        - 'f26'
-        - 'f27'
-        - 'rhel7':
-            repo-file: '0f157b1a-7068-4c75-a672-3b1b90f97ddd'
-        - 'rhel6':
-            repo-file: '5b276700-674e-4a0f-af91-3e725ed7a311'
-        - 'centos7'
+      - 'f27'
+      - 'f28'
+      - 'rhel7':
+          repo-file: '0f157b1a-7068-4c75-a672-3b1b90f97ddd'
+      - 'rhel6':
+          repo-file: '5b276700-674e-4a0f-af91-3e725ed7a311'
+      - 'centos7'
     repo-file: '2386f4ea-a8a3-42a0-9d18-082973a2df87'
