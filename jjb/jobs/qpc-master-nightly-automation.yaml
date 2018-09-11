@@ -1,6 +1,6 @@
 - job:
-    name: 'qpc-nightly-automation'
-    node: 'f27-os'
+    name: 'qpc-master-nightly-automation'
+    node: 'f28-os'
     triggers:
         - timed: '@midnight'
     properties:

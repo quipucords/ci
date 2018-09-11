@@ -1,5 +1,5 @@
 - job:
-    name: 'qpc-PILOT-nightly-automation'
+    name: 'qpc-released-nightly-automation'
     node: 'f27-os'
     triggers:
         - timed: '@midnight'
@@ -80,7 +80,7 @@
 
                 # Install qpc from rpm
                 sudo wget -O /etc/yum.repos.d/group_quipucords-qpc-fedora-27.repo https://copr.fedorainfracloud.org/coprs/g/quipucords/qpc/repo/fedora-27/group_quipucords-qpc-fedora-27.repo
-                # build specific qpc package for pilot
+                # Install released qpc client
                 sudo dnf -y install qpc-0.0.44-1.git.714.f444cdd.fc27
 
                 # create pytest configuration file to ignore the insecure
