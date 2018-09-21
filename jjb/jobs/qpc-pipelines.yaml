@@ -1,0 +1,25 @@
+---
+- job:
+    name: qpc-master
+    project-type: pipeline
+    sandbox: true
+    triggers:
+      - pollscm:
+          cron: '@hourly'
+    pipeline-scm:
+      scm:
+        - git:
+            url: https://github.com/quipucords/quipucords.git
+            branches:
+              - '*/master'
+            skip-tag: true
+
+- job:
+    name: qpc-master-test-install
+    project-type: pipeline
+    sandbox: true
+    triggers:
+      - reverse:
+          jobs: 'qpc-master-build'
+    dsl:
+      !include-raw: 'pipelines/qpc-master-test-install.groovy'
