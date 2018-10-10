@@ -16,7 +16,6 @@
     jobs:
       - 'qpc-{release}-container-install-{distro}'
     release:
-      - 'master'
       - 'released'
     distro:
       - 'f27'
