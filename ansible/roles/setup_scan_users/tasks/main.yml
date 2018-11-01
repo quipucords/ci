@@ -94,6 +94,14 @@
     name: libselinux-python
     state: latest
     disable_gpg_check: yes
+  ignore_errors: true
+
+- name: Add python3-libselinux support.
+  package:
+    name: python3-libselinux
+    state: latest
+    disable_gpg_check: yes
+  ignore_errors: true
 
 - name: Set authorized key from file for root.
   authorized_key:
