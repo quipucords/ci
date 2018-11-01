@@ -28,9 +28,8 @@
               - file-id: '62cf0ccc-220e-4177-9eab-f39701bff8d7'
                 target: 'camayoc/config.yaml'
         - copyartifact:
-                project: qpc_docker_img_poll
+                project: qpc-master
                 filter: quipucords.*.tar.gz
-                stable: true
         - config-file-provider:
             files:
               - file-id: '{repo-file}'
@@ -76,7 +75,7 @@
                 if [ "${{RELEASE}}" = "master" ]; then
                         echo "copy container to installer packages directory"
                         mkdir -p ${{WORKSPACE}}/install/packages
-                        mv quipucords.1.0.0.tar.gz	${{WORKSPACE}}/install/packages/
+                        mv quipucords.master.tar.gz ${{WORKSPACE}}/install/packages/
                 fi
 
                 echo "Execute ansible playbook to install"
