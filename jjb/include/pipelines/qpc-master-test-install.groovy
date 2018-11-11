@@ -16,7 +16,7 @@ def setupQPC() {
     echo 'Copy container to installer packages directory'
     sh '''\
     mkdir -p install/packages
-    mv quipucords.master.tar.gz install/packages/
+    mv quipucords.0.0.*.tar.gz install/packages/
     '''.stripIndent()
 
     echo 'Install QPC using the install.sh script'
