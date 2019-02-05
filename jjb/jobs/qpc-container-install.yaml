@@ -59,11 +59,11 @@
                         sudo yum-config-manager --disable base
                         sudo yum-config-manager --disable optional
                 fi
-
+                
+                echo "Install python-pip"
                 sudo dnf -y install python-pip
 
                 set -e
-
 
                 rm quipucords.*.tar.gz
                 echo "load docker container from tarball"
