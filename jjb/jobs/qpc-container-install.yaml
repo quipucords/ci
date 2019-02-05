@@ -59,27 +59,23 @@
                         sudo yum-config-manager --disable base
                         sudo yum-config-manager --disable optional
                 fi
-
-                sudo yum -y install ansible python-pip
+                
+                echo "Install python-pip"
+                sudo dnf -y install python-pip
 
                 set -e
 
-                if [ "${{RELEASE}}" = "released" ]; then
-                        rm quipucords.*.tar.gz
-                        echo "load docker container from tarball"
-                        curl -k -O -sSL https://github.com/quipucords/quipucords/releases/download/0.0.44/quipucords.install.tar.gz
-                fi
+                rm quipucords.*.tar.gz
+                echo "load docker container from tarball"
+                curl -k -O -sSL https://github.com/quipucords/quipucords/releases/download/${{RELEASE}}/quipucords.${{RELEASE}}.install.tar.gz
+
                 echo "extract the installer into ${{WORKSPACE}}/install"
-                tar -xvzf ${{WORKSPACE}}/quipucords.install.tar.gz
+                tar -xvzf ${{WORKSPACE}}/quipucords.${{RELEASE}}.install.tar.gz
 
-                if [ "${{RELEASE}}" = "master" ]; then
-                        echo "copy container to installer packages directory"
-                        mkdir -p ${{WORKSPACE}}/install/packages
-                        mv quipucords.master.tar.gz ${{WORKSPACE}}/install/packages/
-                fi
-
-                echo "Execute ansible playbook to install"
-                sudo ansible-playbook -v ${{WORKSPACE}}/install/qpc_playbook.yml -e server_install_dir=${{WORKSPACE}}
+                echo "Execute install.sh to install"
+                cd ${{WORKSPACE}}/install/
+                sudo ${{WORKSPACE}}/install/install.sh -e server_install_dir=${{WORKSPACE}}
+                cd ${{WORKSPACE}}
 
                 sudo pip install pexpect nose
                 set +e
