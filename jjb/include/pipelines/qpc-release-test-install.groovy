@@ -1,3 +1,5 @@
+release_version = "0.0.46"
+
 def setupDocker() {
     echo 'Setup docker configuration'
 
@@ -12,11 +14,11 @@ def setupDocker() {
 def setupQPC() {
     sh 'rm quipucords.*.tar.gz'
     echo "load docker container from tarball"
-    sh 'curl -k -O -sSL https://github.com/quipucords/quipucords/releases/download/0.0.46/quipucords.0.0.46.install.tar.gz'
+    sh "curl -k -O -sSL https://github.com/quipucords/quipucords/releases/download/${release_version}/quipucords.${release_version}.install.tar.gz"
 
     echo "extract the installer into ${WORKSPACE}/install"
 
-    sh 'tar -xvzf ${WORKSPACE}/quipucords.0.0.46.install.tar.gz'
+    sh "tar -xvzf ${WORKSPACE}/quipucords.${release_version}.install.tar.gz"
 
     echo "Execute install.sh to install"
     dir("${WORKSPACE}/install") {
