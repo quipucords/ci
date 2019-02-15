@@ -59,7 +59,7 @@
                         sudo yum-config-manager --disable base
                         sudo yum-config-manager --disable optional
                 fi
-                
+
                 echo "Install python-pip"
                 sudo dnf -y install python-pip
 
@@ -90,5 +90,5 @@
             results: junit.xml
         - archive:
             artifacts: 'server-logs.tar.gz'
-            allow-empty: false
+            #            allow-empty: false
         - mark-node-offline

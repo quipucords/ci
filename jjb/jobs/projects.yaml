@@ -26,3 +26,27 @@
           repo-file: '5b276700-674e-4a0f-af91-3e725ed7a311'
       - 'centos7'
     repo-file: '2386f4ea-a8a3-42a0-9d18-082973a2df87'
+
+    #- project:
+    # name: test-release-install-pipeline
+    # jobs:
+    #  - 'ryan-test-pipeline-jjb-{release}'
+    # release:
+    #  - '0.0.46'
+
+
+
+- project:
+    name: 'ryan-test-pipeline-jjb-{release}'
+    # project-type: pipeline
+    jobs:
+      - 'ryan-test-pipeline-jjb-{release}'
+    release:
+      - '0.0.46'
+      - '0.0.45'
+    # sandbox: true
+    triggers:
+      - timed: '@midnight'
+        # dsl:
+        # !include-raw: 'pipelines/qpc-release-test-install.groovy'
+
