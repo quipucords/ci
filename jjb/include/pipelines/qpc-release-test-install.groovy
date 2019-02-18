@@ -85,29 +85,6 @@ stage('Test Install') {{
 
             junit 'junit.xml'
         }}
-    }}, 'Fedora 27': {{
-        node('f27-os') {{
-
-            dir('ci') {{
-                git 'https://github.com/quipucords/ci.git'
-            }}
-
-            sshagent(['390bdc1f-73c6-457e-81de-9e794478e0e']) {{
-                withCredentials([file(credentialsId:
-                '4c692211-c5e1-4354-8e1b-b9d0276c29d9', variable: 'ID_JENKINS_RSA')]) {{
-
-                    withEnv(['DISTRO=f27', 'RELEASE={release}']) {{
-                        setupDocker()
-
-                        setupQPC()
-
-                        runInstallTests 'f27'
-                    }}
-                }}
-            }}
-
-            junit 'junit.xml'
-        }}
     }}, 'Fedora 28': {{
         node('f28-os') {{
 
