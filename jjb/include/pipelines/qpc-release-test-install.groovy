@@ -12,7 +12,6 @@ def setupDocker() {{
 
 
 def setupQPC() {{
-
     sh '''\
     ls -l
     if [ -f quipucords.*tar.gz ]; then
@@ -74,7 +73,7 @@ stage('Test Install') {{
             sshagent(['390bdc1f-73c6-457e-81de-9e794478e0e']) {{
                 withCredentials([file(credentialsId:
                 '4c692211-c5e1-4354-8e1b-b9d0276c29d9', variable: 'ID_JENKINS_RSA')]) {{
-                    withEnv(['DISTRO=centos7', 'RELEASE=master']) {{
+                    withEnv(['DISTRO=centos7', 'RELEASE={release}']) {{
                         setupDocker()
 
                         setupQPC()
@@ -97,7 +96,7 @@ stage('Test Install') {{
                 withCredentials([file(credentialsId:
                 '4c692211-c5e1-4354-8e1b-b9d0276c29d9', variable: 'ID_JENKINS_RSA')]) {{
 
-                    withEnv(['DISTRO=f27', 'RELEASE=master']) {{
+                    withEnv(['DISTRO=f27', 'RELEASE={release}']) {{
                         setupDocker()
 
                         setupQPC()
@@ -119,7 +118,7 @@ stage('Test Install') {{
             sshagent(['390bdc1f-73c6-457e-81de-9e794478e0e']) {{
                 withCredentials([file(credentialsId:
                 '4c692211-c5e1-4354-8e1b-b9d0276c29d9', variable: 'ID_JENKINS_RSA')]) {{
-                    withEnv(['DISTRO=f28', 'RELEASE=master']) {{
+                    withEnv(['DISTRO=f28', 'RELEASE={release}']) {{
                         setupDocker()
 
                         setupQPC()
@@ -143,7 +142,7 @@ stage('Test Install') {{
                 sshagent(['390bdc1f-73c6-457e-81de-9e794478e0e']) {{
                     withCredentials([file(credentialsId:
                     '4c692211-c5e1-4354-8e1b-b9d0276c29d9', variable: 'ID_JENKINS_RSA')]) {{
-                        withEnv(['DISTRO=rhel6', 'RELEASE=master']) {{
+                        withEnv(['DISTRO=rhel6', 'RELEASE={release}']) {{
                             setupDocker()
 
                             sh '''\
@@ -175,7 +174,7 @@ stage('Test Install') {{
                 sshagent(['390bdc1f-73c6-457e-81de-9e794478e0e']) {{
                     withCredentials([file(credentialsId:
                     '4c692211-c5e1-4354-8e1b-b9d0276c29d9', variable: 'ID_JENKINS_RSA')]) {{
-                        withEnv(['DISTRO=rhel7', 'RELEASE=master']) {{
+                        withEnv(['DISTRO=rhel7', 'RELEASE={release}']) {{
                             setupDocker()
 
                             sh 'sudo cp rhel7-custom.repo /etc/yum.repos.d/rhel7-rcm-internal.repo'
