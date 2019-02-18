@@ -27,6 +27,7 @@
       - 'centos7'
     repo-file: '2386f4ea-a8a3-42a0-9d18-082973a2df87'
 
+
 - project:
     name: quipucords-container-install-no-supervisord
     jobs:
