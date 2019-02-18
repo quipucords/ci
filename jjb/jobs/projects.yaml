@@ -28,6 +28,23 @@
     repo-file: '2386f4ea-a8a3-42a0-9d18-082973a2df87'
 
 
+- project:
+    name: quipucords-container-install-no-supervisord
+    jobs:
+      - 'qpc-{release}-nosupervisord-install-{distro}'
+    release:
+      - '0.0.46'
+    distro:
+      - 'f27'
+      - 'f28'
+      - 'rhel7':
+          repo-file: '0f157b1a-7068-4c75-a672-3b1b90f97ddd'
+      - 'rhel6':
+          repo-file: '5b276700-674e-4a0f-af91-3e725ed7a311'
+      - 'centos7'
+    repo-file: '2386f4ea-a8a3-42a0-9d18-082973a2df87'
+
+
 
 - project:
     name: 'qpc-release-install-pipeline'
