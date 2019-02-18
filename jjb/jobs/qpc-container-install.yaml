@@ -90,5 +90,5 @@
             results: junit.xml
         - archive:
             artifacts: 'server-logs.tar.gz'
-            #            allow-empty: false
+            allow-empty: false
         - mark-node-offline
