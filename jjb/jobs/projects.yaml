@@ -49,7 +49,9 @@
 - project:
     name: 'qpc-release-install-pipeline'
     jobs:
-      - 'qpc-{release}-install-pipeline'
+      - 'qpc-{release}-{install_type}-install-pipeline'
     release:
       - '0.0.46'
-
+    install_type:
+      - 'default'
+      - 'nosupervisord'

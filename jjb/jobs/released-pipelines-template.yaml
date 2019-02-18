@@ -1,6 +1,6 @@
 ---
 - job-template:
-    name: 'qpc-{release}-install-pipeline'
+    name: 'qpc-{release}-{install_type}-install-pipeline'
     project-type: pipeline
     sandbox: true
     triggers:
