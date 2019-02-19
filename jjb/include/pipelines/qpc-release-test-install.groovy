@@ -10,6 +10,27 @@ def setupDocker() {{
     '''.stripIndent()
 }}
 
+def installQPC() {{
+    echo "Execute install.sh to install"
+    dir("${{WORKSPACE}}/install") {{
+        sh 'pwd'
+        sh 'ls -l'
+        sh 'sudo ./install.sh -e server_install_dir=${{WORKSPACE}}'
+    }}
+}}
+
+def installQPCNoSupervisorD() {{
+    echo "Execute install.sh to install without supervisord"
+    dir("${{WORKSPACE}}/install") {{
+        sh 'pwd'
+        sh 'ls -l'
+        sh 'sudo ./install.sh -e server_install_dir=${{WORKSPACE}} -e use_supervisord=false'
+
+        // Docker log to check for supervisord
+        sh 'sudo docker ps -a'
+        sh 'sudo docker logs quipucords | grep -i "Running without supervisord"'
+    }}
+}}
 
 def setupQPC() {{
     sh '''\
@@ -26,12 +47,12 @@ def setupQPC() {{
 
     sh "tar -xvzf ${{WORKSPACE}}/quipucords.{release}.install.tar.gz"
 
-    echo "Execute install.sh to install"
-    dir("${{WORKSPACE}}/install") {{
-        sh 'pwd'
-        sh 'ls -l'
-        sh 'sudo ./install.sh -e server_install_dir=${{WORKSPACE}}'
+    if ('{install_type}' == 'nosupervisord') {{
+        installQPCNoSupervisorD()
+    }} else {{
+        installQPC()
     }}
+
 }}
 
 
