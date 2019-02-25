@@ -4,8 +4,6 @@
       - 'rho-copr-install-{distro}'
     distro:
       - 'centos7'
-      - 'f27':
-          repo: 'fedora-27'
       - 'f28':
           repo: 'fedora-28'
       - 'rhel7'
@@ -18,7 +16,6 @@
     release:
       - '0.0.46'
     distro:
-      - 'f27'
       - 'f28'
       - 'rhel7':
           repo-file: '0f157b1a-7068-4c75-a672-3b1b90f97ddd'
@@ -35,7 +32,6 @@
     release:
       - '0.0.46'
     distro:
-      - 'f27'
       - 'f28'
       - 'rhel7':
           repo-file: '0f157b1a-7068-4c75-a672-3b1b90f97ddd'
@@ -47,7 +43,7 @@
 
 
 - project:
-    name: 'qpc-release-install-pipeline'
+    name: qpc-release-install-pipeline
     jobs:
       - 'qpc-{release}-{install_type}-install-pipeline'
     release:
