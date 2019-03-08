@@ -246,19 +246,18 @@ def runCamayocTest(testset) {{
     echo 'Fedora 28: Test '
     echo testset
 
-
     sshagent(['390bdc1f-73c6-457e-81de-9e794478e0e']) {{
-        sh '''
-        export xdg_config_home=$pwd
+        sh """
+        export xdg_config_home=\$pwd
 
         set +e
-        py.test -c pytest.ini -l -ra -s -vvv --junit-xml api-junit.xml --rootdir camayoc/camayoc/tests/qpc camayoc/camayoc/tests/qpc/api
+        py.test -c pytest.ini -l -ra -s -vvv --junit-xml api-junit.xml --rootdir camayoc/camayoc/tests/qpc camayoc/camayoc/tests/qpc/$testset
         set -e
 
-        sudo docker rm $(sudo docker stop $(sudo docker ps -aq))
+        sudo docker rm \$(sudo docker stop \$(sudo docker ps -aq))
         tar -cvzf test-api-logs.tar.gz log
         sudo rm -rf log
-        '''.stripIndent()
+        """.stripIndent()
     }}
     echo 'pre archive artifacts'
     archiveArtifacts 'test-api-logs.tar.gz'
