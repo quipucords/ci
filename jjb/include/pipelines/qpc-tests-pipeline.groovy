@@ -246,27 +246,20 @@ def runCamayocTest(testset) {{
     echo 'Fedora 28: Test '
     echo testset
 
-    configFileProvider([configFile(fileId: '62cf0ccc-220e-4177-9eab-f39701bff8d7', targetLocation: 'camayoc/config.yaml')]) {{
-        sshagent(['390bdc1f-73c6-457e-81de-9e794478e0e']) {{
-            sh """
-            export XDG_CONFIG_HOME=\$(pwd)
-#echo \$XDG_CONFIG_HOME
-#ls -la \$XDG_CONFIG_HOME
-# mkdir -p \$XDG_CONFIG_HOME/.config/camayoc/
-# cp camayoc_config.yaml \$XDG_CONFIG_HOME/.config/camayoc/config.yaml
-#ls -la \$XDG_CONFIG_HOME/.config/camayoc/
-#cat \$XDG_CONFIG_HOME/.config/camayoc/config.yaml
+    sh 'cat camayoc/config.yaml'
 
-#            ls camayoc/camayoc/tests/qpc/
-            set +e
-            py.test -c pytest.ini -l -ra -s -vvv --junit-xml $testset-junit.xml --rootdir camayoc/camayoc/tests/qpc camayoc/camayoc/tests/qpc/$testset
-            set -e
+    sshagent(['390bdc1f-73c6-457e-81de-9e794478e0e']) {{
+        sh """
+        export XDG_CONFIG_HOME=\$(pwd)
 
-            sudo docker rm \$(sudo docker stop \$(sudo docker ps -aq))
-            tar -cvzf test-$testset-logs.tar.gz log
-            sudo rm -rf log
-            """.stripIndent()
-        }}
+        set +e
+        py.test -c pytest.ini -l -ra -s -vvv --junit-xml $testset-junit.xml --rootdir camayoc/camayoc/tests/qpc camayoc/camayoc/tests/qpc/$testset
+        set -e
+
+        sudo docker rm \$(sudo docker stop \$(sudo docker ps -aq))
+        tar -cvzf test-$testset-logs.tar.gz log
+        sudo rm -rf log
+        """.stripIndent()
     }}
     echo 'pre archive artifacts'
     archiveArtifacts "test-$testset-logs.tar.gz"
