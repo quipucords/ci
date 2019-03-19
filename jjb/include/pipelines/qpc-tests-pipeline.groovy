@@ -292,36 +292,6 @@ def runCamayocUITest(browser) {{
     junit "ui-$browser-junit.xml"
 }}
 
-def camayoc_tests() {{
-    dir('camayoc') {{
-        git 'https://github.com/quipucords/camayoc.git'
-    }}
-    sh "ls -la"
-
-    sh '''\
-    # create pytest configuration file to ignore the insecure
-    # requests warnings that talking to the server over https
-    # without a good cert cause
-    cat >> pytest.ini << EOF
-    [pytest]
-    filterwarnings = ignore::urllib3.exceptions.InsecureRequestWarning
-    EOF
-    '''.stripIndent()
-
-    sh '''\
-    # Install camayoc and run test suite
-
-    pip install ./camayoc[dev] --user
-
-    set +e
-    py.test -c pytest.ini -v --junit-xml ${{WORKSPACE}}/junit.xml camayoc/camayoc/tests/qpc/
-    set -e
-    # Archive server logs to aid in analyzing test failures
-    #cd ${{WORKSPACE}}
-    #tar -cvzf server-logs.tar.gz ${{WORKSPACE}}/log
-    '''.stripIndent()
-}}
-
 stage('Test Install') {{
     parallel 'CentOS 7 Install': {{
         node('centos7-os-old') {{
@@ -365,9 +335,6 @@ stage('Test Install') {{
                     }}
                 }}
             }}
-//            stage('Fedora 28 Camayoc Tests'){{
-//                camayoc_tests()
-//            }}
 
             stage('Setup Integration Tests') {{
                 echo 'Fedora 28: Configure Docker'
