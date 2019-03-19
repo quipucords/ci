@@ -1,5 +1,12 @@
 // {release} {install_type}
-def qpc_version = "0.0.47"
+
+def qpc_version = "" // Better way for this?
+if ('{release}' == 'master') {{
+    qpc_version = "0.0.47"
+}} else {{
+    qpc_version = "{release}"
+}}
+
 def image_name = "quipucords:${{qpc_version}}"
 def tarfile = "quipucords.${{qpc_version}}.tar"
 def targzfile = "${{tarfile}}.gz"
@@ -56,12 +63,12 @@ def configureDocker = {{
     echo "INSECURE_REGISTRY=\\"--insecure-registry \${{DOCKER_REGISTRY}}\\"" >> docker.conf
     sudo cp docker.conf /etc/sysconfig/docker
     sudo systemctl start docker
-    # TODO: Fix Hard code for now
     ls -lah
     pwd
     ls -lah ..
     ls -lah install/
-    sudo docker load -i quipucords.0.0.47.tar.gz
+    # TODO: Fix Hard code Version
+    sudo docker load -i quipucords.${{qpc_version}}.tar.gz
     # make log dir to save server logs
     mkdir -p log
     """.stripIndent()
@@ -111,19 +118,20 @@ def getMasterQPC() {{
 
     sh 'ls -lah'
     echo 'Extract the installer script'
-    sh 'tar -xvzf quipucords.0.0.47.install.tar.gz'
+    // TODO: Fix Hard code version
+    sh 'tar -xvzf quipucords.${{qpc_version}}.install.tar.gz'
 
     sh 'ls -lah'
     echo 'Copy container to installer packages directory'
     sh '''\
     ls -lah
     mkdir -p install/packages
-    # mv quipucords.0.0.47.tar.gz install/packages/
     '''.stripIndent()
 
 }}
 
 def getReleasedQPC() {{
+    echo 'Get released QPC'
     // Clean up QPC package if here...
     sh '''\
     ls -l
@@ -132,21 +140,28 @@ def getReleasedQPC() {{
     fi
     '''.stripIndent()
 
-    // Pulls down Released QPC Build
+    // Pulls down Released Container
     echo "load docker container from tarball"
+    sh "curl -k -O -sSL https://github.com/quipucords/quipucords/releases/download/{release}/quipucords.{release}.tar.gz"
+    // Pulls down Released Install
     sh "curl -k -O -sSL https://github.com/quipucords/quipucords/releases/download/{release}/quipucords.{release}.install.tar.gz"
 
     echo "extract the installer into ${{WORKSPACE}}/install"
 
     sh "tar -xvzf ${{WORKSPACE}}/quipucords.{release}.install.tar.gz"
 
+    sh "ls -lah"
+    sh "ls -lah install/"
+
 }}
 
 def setupQPC() {{
     // get QPC
     if ('{release}' == 'master') {{
+        echo "in setup master conditional"
         getMasterQPC()
     }} else {{
+        echo "in setup release conditional"
         getReleasedQPC()
     }}
 }}
@@ -292,7 +307,7 @@ def runCamayocUITest(browser) {{
     junit "ui-$browser-junit.xml"
 }}
 
-stage('Test Install') {{
+stage('Run Tests') {{
     parallel 'CentOS 7 Install': {{
         node('centos7-os-old') {{
             stage('Centos7 Install') {{
@@ -315,7 +330,10 @@ stage('Test Install') {{
             }}
             junit 'junit.xml'
         }}
-    }}, 'Fedora 28': {{
+    }},
+
+
+    'Fedora 28': {{
         node('f28-os-old') {{
             stage('Fedora 28 Install') {{
                 dir('ci') {{
@@ -336,7 +354,7 @@ stage('Test Install') {{
                 }}
             }}
 
-            stage('Setup Integration Tests') {{
+            stage('F28: Setup Integration Tests') {{
                 echo 'Fedora 28: Configure Docker'
                 configureDocker()
                 echo 'Fedora 28: Install QPC Client'
@@ -347,38 +365,39 @@ stage('Test Install') {{
                 setupCamayoc()
             }}
 
+            stage('F28: test api') {{
+                echo 'Fedora 28: Test API'
+                startQPCServer()
+                runCamayocTest 'api'
+            }}
 
-        stage('test api') {{
-            echo 'Fedora 28: Test API'
-            startQPCServer()
-            runCamayocTest 'api'
-        }}
+            stage('F28: Test CLI') {{
+                echo 'Fedora 28: Test CLI'
+                startQPCServer()
+                runCamayocTest 'cli'
+            }}
 
+            stage('F28: Test UI Chrome') {{
+                echo 'Fedora 28: Test UI Chrome'
+                startQPCServer()
+                runCamayocUITest 'chrome'
+            }}
 
-        stage('Test CLI') {{
-            echo 'Fedora 28: Test CLI'
-            startQPCServer()
-            runCamayocTest 'cli'
-        }}
+            stage('F28: Test UI Firefox') {{
+                echo 'Fedora 28: Test UI Firefox'
+                startQPCServer()
+                runCamayocUITest 'firefox'
+            }}
 
+            stage('F28: Install Tests') {{
+                runInstallTests 'f28'
+                sh 'ls -lah'
+                junit 'junit.xml'
+            }}
+         }}
+    }},
 
-        stage('Test UI Chrome') {{
-            echo 'Fedora 28: Test UI Chrome'
-            startQPCServer()
-            runCamayocUITest 'chrome'
-        }}
-
-        stage('Test UI Firefox') {{
-            echo 'Fedora 28: Test UI Firefox'
-            startQPCServer()
-            runCamayocUITest 'firefox'
-        }}
-
-            runInstallTests 'f28'
-            sh 'ls -lah'
-            junit 'junit.xml'
-        }}
-    }}, 'RHEL6 Install': {{
+    'RHEL6 Install': {{
         node('rhel6-os-old') {{
             stage('rhel6 Install') {{
                 dir('ci') {{
