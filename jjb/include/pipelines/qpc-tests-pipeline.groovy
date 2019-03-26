@@ -7,11 +7,20 @@ if ('{release}' == 'master') {{
     qpc_version = "{release}"
 }}
 
+
 def image_name = "quipucords:${{qpc_version}}"
 def tarfile = "quipucords.${{qpc_version}}.tar"
 def targzfile = "${{tarfile}}.gz"
 def install_tar = "quipucords.install.tar"
 def install_targzfile = "${{install_tar}}.gz"
+
+def getQPCVersion() {{
+    if ('{release}' == 'master') {{
+        return "0.0.47"
+    }} else {{
+        return "{release}"
+    }}
+}}
 
 def setupDocker() {{
     echo 'Setup docker configuration'
@@ -67,7 +76,6 @@ def configureDocker = {{
     pwd
     ls -lah ..
     ls -lah install/
-    # TODO: Fix Hard code Version
     sudo docker load -i quipucords.${{qpc_version}}.tar.gz
     # make log dir to save server logs
     mkdir -p log
@@ -113,18 +121,18 @@ def getQuipucords() {{
 
 def getMasterQPC() {{
     // Grabs the master qpc builds and sets it up
-    sh 'ls -lah'
+    def qpc_version = getQPCVersion()
     getQuipucords()
 
     sh 'ls -lah'
     echo 'Extract the installer script'
-    // TODO: Fix Hard code version
-    sh 'tar -xvzf quipucords.${{qpc_version}}.install.tar.gz'
+    sh """\
+    echo ${{qpc_version}}
+    tar -xvzf quipucords.${{qpc_version}}.install.tar.gz
+    """.stripIndent()
 
-    sh 'ls -lah'
     echo 'Copy container to installer packages directory'
     sh '''\
-    ls -lah
     mkdir -p install/packages
     '''.stripIndent()
 
@@ -262,7 +270,7 @@ def runCamayocTest(testset) {{
     echo testset
 
     sh 'cat camayoc/config.yaml'
-
+    sh 'ls -lah'
     sshagent(['390bdc1f-73c6-457e-81de-9e794478e0e']) {{
         sh """
         export XDG_CONFIG_HOME=\$(pwd)
@@ -309,7 +317,7 @@ def runCamayocUITest(browser) {{
 
 stage('Run Tests') {{
     parallel 'CentOS 7 Install': {{
-        node('centos7-os-old') {{
+        node('centos7-os') {{
             stage('Centos7 Install') {{
                 dir('ci') {{
                     git 'https://github.com/quipucords/ci.git'
@@ -321,6 +329,11 @@ stage('Run Tests') {{
                         withEnv(['DISTRO=centos7', 'RELEASE={release}']) {{
 //                            setupDocker()
 
+                            sh """\
+                            echo 'Testing qpc_version variable'
+                            echo ${{qpc_version}}
+                            """.stripIndent()
+                            echo "Testing inline qpc_version variable: ${{qpc_version}}"
                             setupQPC()
 
                             runInstallTests 'centos7'
@@ -334,7 +347,7 @@ stage('Run Tests') {{
 
 
     'Fedora 28': {{
-        node('f28-os-old') {{
+        node('f28-os') {{
             stage('Fedora 28 Install') {{
                 dir('ci') {{
                     git 'https://github.com/quipucords/ci.git'
@@ -345,7 +358,11 @@ stage('Run Tests') {{
                     '4c692211-c5e1-4354-8e1b-b9d0276c29d9', variable: 'ID_JENKINS_RSA')]) {{
                         withEnv(['DISTRO=f28', 'RELEASE={release}']) {{
 //                            setupDocker()
-
+                            sh """\
+                            echo 'Testing qpc_version variable'
+                            echo ${{qpc_version}}
+                            """.stripIndent()
+                            echo "Testing inline qpc_version variable: ${{qpc_version}}"
                             setupQPC()
 
 //                            runInstallTests 'f28'
@@ -391,7 +408,6 @@ stage('Run Tests') {{
 
             stage('F28: Install Tests') {{
                 runInstallTests 'f28'
-                sh 'ls -lah'
                 junit 'junit.xml'
             }}
          }}
