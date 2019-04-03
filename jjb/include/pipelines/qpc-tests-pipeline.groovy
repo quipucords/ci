@@ -41,6 +41,7 @@ def setupDocker() {{
 }}
 
 
+
 /////////////////////////////////////
 //// Configure & Start Functions ////
 /////////////////////////////////////
@@ -93,6 +94,7 @@ def startQPCServer = {{
 }}
 
 
+
 //////////////////////////////
 //// Get Builds Functions ////
 //////////////////////////////
@@ -108,6 +110,7 @@ def getQuipucords() {{
     }}
 }}
 
+
 def getQuipucordsBuild() {{
     // Grabs the quipucords build
     echo "getQuipucords: Copying Latest build artifact..."
@@ -115,6 +118,7 @@ def getQuipucordsBuild() {{
     copyArtifacts filter: 'quipucords.*.install.tar.gz', fingerprintArtifacts: true, projectName: 'qpc-testing-build', selector: lastCompleted()
     copyArtifacts filter: 'postgres.*.tar.gz', fingerprintArtifacts: true, projectName: 'qpc-testing-build', selector: lastCompleted()
 }}
+
 
 def getMasterQPC() {{
     // Grabs the master qpc builds and sets it up
@@ -135,6 +139,7 @@ def getMasterQPC() {{
     '''.stripIndent()
 
 }}
+
 
 def getReleasedQPC() {{
     echo 'Get released QPC'
@@ -158,6 +163,7 @@ def getReleasedQPC() {{
 }}
 
 
+
 ///////////////////////////
 //// Install Functions ////
 ///////////////////////////
@@ -173,6 +179,7 @@ def installQPC(distro) {{
     // Install the client
 }}
 
+
 def defaultInstall() {{
     echo "Execute install.sh to install"
     dir("${{WORKSPACE}}/install") {{
@@ -181,6 +188,7 @@ def defaultInstall() {{
         sh 'sudo ./install.sh -e server_install_dir=${{WORKSPACE}}'
     }}
 }}
+
 
 def installQPCNoSupervisorD() {{
     echo "Execute install.sh to install without supervisord"
@@ -194,6 +202,7 @@ def installQPCNoSupervisorD() {{
         sh 'sudo docker logs quipucords | grep -i "Running without supervisord"'
     }}
 }}
+
 
 def containerInstall(distro) {{
     echo "Execute docker container install"
@@ -213,6 +222,7 @@ def containerInstall(distro) {{
     """.stripIndent()
 }}
 
+
 def installQpcClient(distro) {{
     // Install the qpc client
     echo 'Install QPC Client'
@@ -230,33 +240,9 @@ def installQpcClient(distro) {{
 
 
 
-def runInstallTests(distro) {{
-    if (distro ==~ /f\d\d/) {{
-        sh 'sudo dnf -y install python-pip'
-    }} else {{
-        sh 'sudo yum -y install python-pip'
-    }}
-
-    if (distro == 'rhel6') {{
-        sh 'sudo pip install pexpect nose'
-
-        sh '''\
-        set +e
-        nosetests --with-xunit --xunit-file=junit.xml ci/scripts/quipucords/master/install/test_install.py
-        set -e
-        '''.stripIndent()
-    }} else {{
-        sh 'sudo pip install -U pip'
-        sh 'sudo pip install pexpect pytest'
-
-        sh """\
-        set +e
-        pytest --junit-prefix ${{distro}} --junit-xml junit.xml ci/scripts/quipucords/master/install/test_install.py
-        set -e
-        """.stripIndent()
-    }}
-}}
-
+////////////////////
+//// Test Setup ////
+////////////////////
 def setupScanUsers() {{
     dir('ci') {{
         git 'https://github.com/quipucords/ci.git'
@@ -312,6 +298,37 @@ def setupCamayoc() {{
 }}
 
 
+
+////////////////////////
+//// Test Functions ////
+////////////////////////
+def runInstallTests(distro) {{
+    if (distro ==~ /f\d\d/) {{
+        sh 'sudo dnf -y install python-pip'
+    }} else {{
+        sh 'sudo yum -y install python-pip'
+    }}
+    if (distro == 'rhel6') {{
+        sh 'sudo pip install pexpect nose'
+
+        sh '''\
+        set +e
+        nosetests --with-xunit --xunit-file=junit.xml ci/scripts/quipucords/master/install/test_install.py
+        set -e
+        '''.stripIndent()
+    }} else {{
+        sh 'sudo pip install -U pip'
+        sh 'sudo pip install pexpect pytest'
+
+        sh """\
+        set +e
+        pytest --junit-prefix ${{distro}} --junit-xml junit.xml ci/scripts/quipucords/master/install/test_install.py
+        set -e
+        """.stripIndent()
+    }}
+}}
+
+
 def runCamayocTest(testset) {{
     echo 'Fedora 28: Test '
     echo testset
@@ -338,6 +355,7 @@ def runCamayocTest(testset) {{
     junit "$testset-junit.xml"
 }}
 
+
 def runCamayocUITest(browser) {{
     sshagent(['390bdc1f-73c6-457e-81de-9e794478e0e']) {{
         sh "sudo docker run --net='host' -d -p 4444:4444 -v /dev/shm:/dev/shm:z -v /tmp:/tmp:z selenium/standalone-$browser"
@@ -362,6 +380,11 @@ def runCamayocUITest(browser) {{
     junit "ui-$browser-junit.xml"
 }}
 
+
+
+////////////////////////
+//// Pipeline Stage ////
+////////////////////////
 stage('Run Tests') {{
     parallel 'CentOS 7 Install': {{
         node('centos7-os') {{
