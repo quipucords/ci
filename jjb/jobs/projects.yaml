@@ -48,7 +48,7 @@
     release:
       - 'master'
     install_type:
-      - 'default'
+      - 'container'
 
 - project:
     name: qpc-release-install-pipeline
@@ -57,5 +57,6 @@
     release:
       - '0.0.46'
     install_type:
+      - 'container'
       - 'default'
       - 'nosupervisord'

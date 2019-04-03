@@ -22,22 +22,50 @@ def getQPCVersion() {{
     }}
 }}
 
+/////////////////////////
+//// Setup Functions ////
+/////////////////////////
 def setupDocker() {{
-    echo 'Setup docker configuration'
-    sh '''\
+//    echo 'Setup docker configuration'
+//    sh '''\
+//    echo "OPTIONS=--log-driver=journald" > docker.conf
+//    echo "DOCKER_CERT_PATH=/etc/docker" >> docker.conf
+//    sudo cp docker.conf /etc/sysconfig/docker
+//    '''.stripIndent()
+    sh """\
     echo "OPTIONS=--log-driver=journald" > docker.conf
     echo "DOCKER_CERT_PATH=/etc/docker" >> docker.conf
+    echo "INSECURE_REGISTRY=\\"--insecure-registry \${{DOCKER_REGISTRY}}\\"" >> docker.conf
     sudo cp docker.conf /etc/sysconfig/docker
-    '''.stripIndent()
+    """.stripIndent()
 }}
 
+
+/////////////////////////////////////
+//// Configure & Start Functions ////
+/////////////////////////////////////
 def startQPCServer = {{
     sh """\
     echo 'startQPCServer'
     pwd
     ls -lah
+    sudo systemctl start docker # Ensure docker running
+    # Note: the '|| true' is to prevent exit status = 1, so Jenkins doesn't fail
+    # the job on no match
+    echo \$(sudo docker ps -a)
+    QPC_DB=\$(sudo docker ps | grep qpc-db || true)
+    QPC_CONTAINER=\$(sudo docker ps | grep ${{image_name}} || true)
+    echo \$QCP_DB
+    echo \$QPC_CONTAINER
+
+    # Stop containers if they are running before restarting or testing
+    if [ \"\$QPC_DB\" != '' ] || [ \"\$QPC_CONTAINER\" != '' ]
+    then
+        sudo docker rm \$(sudo docker stop \$(sudo docker ps -aq))
+    fi
+    # Start up docker contaienrs
     sudo docker run --name qpc-db -e POSTGRES_PASSWORD=password -d postgres:9.6.10
-    sudo docker run -d -p "9443:443" --link qpc-db:qpc-link \\
+    sudo docker run -d -p '9443:443' --link qpc-db:qpc-link \\
         -e QPC_DBMS_HOST=qpc-db \\
         -e QPC_DBMS_PASSWORD=password \\
         -v /tmp:/tmp \
@@ -65,55 +93,24 @@ def startQPCServer = {{
 }}
 
 
-def configureDocker = {{
-    sh """\
-    echo "OPTIONS=--log-driver=journald" > docker.conf
-    echo "DOCKER_CERT_PATH=/etc/docker" >> docker.conf
-    echo "INSECURE_REGISTRY=\\"--insecure-registry \${{DOCKER_REGISTRY}}\\"" >> docker.conf
-    sudo cp docker.conf /etc/sysconfig/docker
-    sudo systemctl start docker
-    ls -lah
-    pwd
-    ls -lah ..
-    ls -lah install/
-    sudo docker load -i quipucords.${{qpc_version}}.tar.gz
-    # make log dir to save server logs
-    mkdir -p log
-    """.stripIndent()
-}}
-
-def installQPCDefault() {{
-    echo "Execute install.sh to install"
-    dir("${{WORKSPACE}}/install") {{
-        sh 'pwd'
-        sh 'ls -l'
-        sh 'sudo ./install.sh -e server_install_dir=${{WORKSPACE}}'
-    }}
-}}
-
-def installQpcClient() {{
-    sh '''\
-    sudo wget -O /etc/yum.repos.d/group_quipucords-qpc-fedora-28.repo https://copr.fedorainfracloud.org/coprs/g/quipucords/qpc/repo/fedora-28/group_quipucords-qpc-fedora28.repo
-    sudo dnf -y install qpc
-    '''.stripIndent()
-}}
-
-def installQPCNoSupervisorD() {{
-    echo "Execute install.sh to install without supervisord"
-    dir("${{WORKSPACE}}/install") {{
-        sh 'pwd'
-        sh 'ls -l'
-        sh 'sudo ./install.sh -e server_install_dir=${{WORKSPACE}} -e use_supervisord=false'
-
-        // Docker log to check for supervisord
-        sh 'sudo docker ps -a'
-        sh 'sudo docker logs quipucords | grep -i "Running without supervisord"'
-    }}
-}}
-
+//////////////////////////////
+//// Get Builds Functions ////
+//////////////////////////////
 def getQuipucords() {{
+    // get QPC
+    echo 'getQuipucords'
+    if ('{release}' == 'master') {{
+        echo "in setup master conditional"
+        getMasterQPC()
+    }} else {{
+        echo "in setup release conditional"
+        getReleasedQPC()
+    }}
+}}
+
+def getQuipucordsBuild() {{
     // Grabs the quipucords build
-    echo "Copying Latest build artifact..."
+    echo "getQuipucords: Copying Latest build artifact..."
     copyArtifacts filter: 'quipucords.*.tar.gz', fingerprintArtifacts: true, projectName: 'qpc-testing-build', selector: lastCompleted()
     copyArtifacts filter: 'quipucords.*.install.tar.gz', fingerprintArtifacts: true, projectName: 'qpc-testing-build', selector: lastCompleted()
     copyArtifacts filter: 'postgres.*.tar.gz', fingerprintArtifacts: true, projectName: 'qpc-testing-build', selector: lastCompleted()
@@ -121,8 +118,9 @@ def getQuipucords() {{
 
 def getMasterQPC() {{
     // Grabs the master qpc builds and sets it up
+    echo 'getMasterQPC'
     def qpc_version = getQPCVersion()
-    getQuipucords()
+    getQuipucordsBuild()
 
     sh 'ls -lah'
     echo 'Extract the installer script'
@@ -157,31 +155,80 @@ def getReleasedQPC() {{
     echo "extract the installer into ${{WORKSPACE}}/install"
 
     sh "tar -xvzf ${{WORKSPACE}}/quipucords.{release}.install.tar.gz"
-
-    sh "ls -lah"
-    sh "ls -lah install/"
-
 }}
 
-def setupQPC() {{
-    // get QPC
-    if ('{release}' == 'master') {{
-        echo "in setup master conditional"
-        getMasterQPC()
-    }} else {{
-        echo "in setup release conditional"
-        getReleasedQPC()
-    }}
-}}
 
-def installQPC() {{
+///////////////////////////
+//// Install Functions ////
+///////////////////////////
+def installQPC(distro) {{
     // Install QPC
     if ('{install_type}' == 'nosupervisord') {{
         installQPCNoSupervisorD()
+    }} else if ('{install_type}' == 'container') {{
+        containerInstall(distro)
     }} else {{
-        installQPC()
+        defaultInstall()
+    }}
+    // Install the client
+}}
+
+def defaultInstall() {{
+    echo "Execute install.sh to install"
+    dir("${{WORKSPACE}}/install") {{
+        sh 'pwd'
+        sh 'ls -l'
+        sh 'sudo ./install.sh -e server_install_dir=${{WORKSPACE}}'
     }}
 }}
+
+def installQPCNoSupervisorD() {{
+    echo "Execute install.sh to install without supervisord"
+    dir("${{WORKSPACE}}/install") {{
+        sh 'pwd'
+        sh 'ls -l'
+        sh 'sudo ./install.sh -e server_install_dir=${{WORKSPACE}} -e use_supervisord=false'
+
+        // Docker log to check for supervisord
+        sh 'sudo docker ps -a'
+        sh 'sudo docker logs quipucords | grep -i "Running without supervisord"'
+    }}
+}}
+
+def containerInstall(distro) {{
+    echo "Execute docker container install"
+    def qpc_version = getQPCVersion()
+    if (distro == 'rhel6') {{
+        echo 'No systemd, Docker should already be started.'
+    }} else {{
+        echo 'Starting Docker with Systemd'
+        sh 'sudo systemctl start docker'
+        sh 'sudo systemctl status docker'
+    }}
+
+    sh """\
+    sudo docker load -i quipucords.${{qpc_version}}.tar.gz
+    # make log dir to save server logs
+    mkdir -p log
+    """.stripIndent()
+}}
+
+def installQpcClient(distro) {{
+    // Install the qpc client
+    echo 'Install QPC Client'
+    sh '''\
+    sudo wget -O /etc/yum.repos.d/group_quipucords-qpc-fedora-28.repo https://copr.fedorainfracloud.org/coprs/g/quipucords/qpc/repo/fedora-28/group_quipucords-qpc-fedora28.repo
+    ls -la /etc/yum.repos.d/
+    '''.stripIndent()
+
+    if (distro ==~ /f\d\d/) {{
+        sh 'sudo dnf -y install qpc'
+    }} else {{
+        sh 'sudo yum -y install qpc'
+    }}
+}}
+
+
 
 def runInstallTests(distro) {{
     if (distro ==~ /f\d\d/) {{
@@ -334,8 +381,8 @@ stage('Run Tests') {{
                             echo ${{qpc_version}}
                             """.stripIndent()
                             echo "Testing inline qpc_version variable: ${{qpc_version}}"
-                            setupQPC()
-
+                            getQuipucords()
+                            installQPC 'centos7'
                             runInstallTests 'centos7'
                         }}
                     }}
@@ -357,14 +404,12 @@ stage('Run Tests') {{
                     withCredentials([file(credentialsId:
                     '4c692211-c5e1-4354-8e1b-b9d0276c29d9', variable: 'ID_JENKINS_RSA')]) {{
                         withEnv(['DISTRO=f28', 'RELEASE={release}']) {{
-//                            setupDocker()
-                            sh """\
-                            echo 'Testing qpc_version variable'
-                            echo ${{qpc_version}}
-                            """.stripIndent()
-                            echo "Testing inline qpc_version variable: ${{qpc_version}}"
-                            setupQPC()
-
+                            echo 'Fedora 28: Configure Docker'
+                            setupDocker()
+                            getQuipucords()
+                            installQPC 'f28'
+                            echo 'post installqpc'
+                            sh 'sudo docker ps -a'
 //                            runInstallTests 'f28'
                         }}
                     }}
@@ -372,20 +417,28 @@ stage('Run Tests') {{
             }}
 
             stage('F28: Setup Integration Tests') {{
-                echo 'Fedora 28: Configure Docker'
-                configureDocker()
                 echo 'Fedora 28: Install QPC Client'
-                installQpcClient()
+                installQpcClient 'f28'
+                echo 'post installqpc client'
+                sh 'sudo docker ps -a'
                 echo 'Fedora 28: Setup Scan Users'
                 setupScanUsers()
+                echo 'post setup scan users'
+                sh 'sudo docker ps -a'
                 echo 'Fedora 28: Setup Camayoc'
                 setupCamayoc()
+                echo 'post setup camayoc1'
+                sh 'sudo docker ps -a'
             }}
 
             stage('F28: test api') {{
                 echo 'Fedora 28: Test API'
                 startQPCServer()
+                echo 'post start qpcserver'
+                sh 'sudo docker ps -a'
                 runCamayocTest 'api'
+                echo 'post run api tests'
+                sh 'sudo docker ps -a'
             }}
 
             stage('F28: Test CLI') {{
@@ -435,7 +488,8 @@ stage('Run Tests') {{
                                 sudo yum-config-manager --disable optional
                                 '''.stripIndent()
 
-                                setupQPC()
+                                getQuipucords()
+                                installQPC 'rhel6'
 
                                 runInstallTests 'rhel6'
                             }}
@@ -458,10 +512,15 @@ stage('Run Tests') {{
                         withCredentials([file(credentialsId:
                         '4c692211-c5e1-4354-8e1b-b9d0276c29d9', variable: 'ID_JENKINS_RSA')]) {{
                             withEnv(['DISTRO=rhel7', 'RELEASE={release}']) {{
+                                echo 'Install Docker?'
+                                // TODO: Better solution
+                                sh 'sudo yum install docker -y'
+
                                 setupDocker()
 
                                 sh 'sudo cp rhel7-custom.repo /etc/yum.repos.d/rhel7-rcm-internal.repo'
-                                setupQPC()
+                                getQuipucords()
+                                installQPC 'rhel7'
                                 runInstallTests 'rhel7'
                             }}
                         }}
