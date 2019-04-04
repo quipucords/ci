@@ -26,12 +26,6 @@ def getQPCVersion() {{
 //// Setup Functions ////
 /////////////////////////
 def setupDocker() {{
-//    echo 'Setup docker configuration'
-//    sh '''\
-//    echo "OPTIONS=--log-driver=journald" > docker.conf
-//    echo "DOCKER_CERT_PATH=/etc/docker" >> docker.conf
-//    sudo cp docker.conf /etc/sysconfig/docker
-//    '''.stripIndent()
     sh """\
     echo "OPTIONS=--log-driver=journald" > docker.conf
     echo "DOCKER_CERT_PATH=/etc/docker" >> docker.conf
@@ -51,13 +45,8 @@ def startQPCServer = {{
     pwd
     ls -lah
     sudo systemctl start docker # Ensure docker running
-    # Note: the '|| true' is to prevent exit status = 1, so Jenkins doesn't fail
-    # the job on no match
-    echo \$(sudo docker ps -a)
     QPC_DB=\$(sudo docker ps | grep qpc-db || true)
     QPC_CONTAINER=\$(sudo docker ps | grep ${{image_name}} || true)
-    echo \$QCP_DB
-    echo \$QPC_CONTAINER
 
     # Stop containers if they are running before restarting or testing
     if [ \"\$QPC_DB\" != '' ] || [ \"\$QPC_CONTAINER\" != '' ]
@@ -102,10 +91,8 @@ def getQuipucords() {{
     // get QPC
     echo 'getQuipucords'
     if ('{release}' == 'master') {{
-        echo "in setup master conditional"
         getMasterQPC()
     }} else {{
-        echo "in setup release conditional"
         getReleasedQPC()
     }}
 }}
@@ -210,7 +197,7 @@ def containerInstall(distro) {{
     if (distro == 'rhel6') {{
         echo 'No systemd, Docker should already be started.'
     }} else {{
-        echo 'Starting Docker with Systemd'
+        echo 'Starting Docker using Systemd'
         sh 'sudo systemctl start docker'
         sh 'sudo systemctl status docker'
     }}
@@ -291,7 +278,6 @@ def setupCamayoc() {{
     configFileProvider([configFile(fileId: '62cf0ccc-220e-4177-9eab-f39701bff8d7', targetLocation: 'camayoc/config.yaml')]) {{
         sh '''\
         sed -i "s/{{jenkins_slave_ip}}/${{OPENSTACK_PUBLIC_IP}}/" camayoc/config.yaml
-        echo 'post-sed'
         '''.stripIndent()
 
     }}
@@ -330,8 +316,7 @@ def runInstallTests(distro) {{
 
 
 def runCamayocTest(testset) {{
-    echo 'Fedora 28: Test '
-    echo testset
+    echo "Running ${{testset}} Tests"
 
     sh 'cat camayoc/config.yaml'
     sh 'ls -lah'
@@ -348,15 +333,17 @@ def runCamayocTest(testset) {{
         sudo rm -rf log
         """.stripIndent()
     }}
-    echo 'pre archive artifacts'
+    echo 'Archiving artifacts'
     archiveArtifacts "test-$testset-logs.tar.gz"
-
-    echo "pre $testset-junit"
     junit "$testset-junit.xml"
 }}
 
 
 def runCamayocUITest(browser) {{
+    echo "Running ${{testset}} Tests"
+
+    sh 'cat camayoc/config.yaml'
+    sh 'ls -lah'
     sshagent(['390bdc1f-73c6-457e-81de-9e794478e0e']) {{
         sh "sudo docker run --net='host' -d -p 4444:4444 -v /dev/shm:/dev/shm:z -v /tmp:/tmp:z selenium/standalone-$browser"
 
@@ -376,6 +363,7 @@ def runCamayocUITest(browser) {{
         """.stripIndent()
     }}
 
+    echo 'Archiving artifacts'
     archiveArtifacts "test-ui-$browser-logs.tar.gz"
     junit "ui-$browser-junit.xml"
 }}
@@ -397,8 +385,6 @@ stage('Run Tests') {{
                     withCredentials([file(credentialsId:
                     '4c692211-c5e1-4354-8e1b-b9d0276c29d9', variable: 'ID_JENKINS_RSA')]) {{
                         withEnv(['DISTRO=centos7', 'RELEASE={release}']) {{
-//                            setupDocker()
-
                             sh """\
                             echo 'Testing qpc_version variable'
                             echo ${{qpc_version}}
@@ -431,8 +417,6 @@ stage('Run Tests') {{
                             setupDocker()
                             getQuipucords()
                             installQPC 'f28'
-                            echo 'post installqpc'
-                            sh 'sudo docker ps -a'
 //                            runInstallTests 'f28'
                         }}
                     }}
@@ -442,26 +426,16 @@ stage('Run Tests') {{
             stage('F28: Setup Integration Tests') {{
                 echo 'Fedora 28: Install QPC Client'
                 installQpcClient 'f28'
-                echo 'post installqpc client'
-                sh 'sudo docker ps -a'
                 echo 'Fedora 28: Setup Scan Users'
                 setupScanUsers()
-                echo 'post setup scan users'
-                sh 'sudo docker ps -a'
                 echo 'Fedora 28: Setup Camayoc'
                 setupCamayoc()
-                echo 'post setup camayoc1'
-                sh 'sudo docker ps -a'
             }}
 
             stage('F28: test api') {{
                 echo 'Fedora 28: Test API'
                 startQPCServer()
-                echo 'post start qpcserver'
-                sh 'sudo docker ps -a'
                 runCamayocTest 'api'
-                echo 'post run api tests'
-                sh 'sudo docker ps -a'
             }}
 
             stage('F28: Test CLI') {{
@@ -524,8 +498,7 @@ stage('Run Tests') {{
         }}
     }}, 'RHEL7 Install': {{
         node('rhel7-os-old') {{
-            stage('rhel7 Install') {{
-                dir('ci') {{
+            stage('rhel7 Install') {{ dir('ci') {{
                     git 'https://github.com/quipucords/ci.git'
                 }}
 
