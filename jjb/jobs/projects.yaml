@@ -51,7 +51,7 @@
       - 'container'
 
 - project:
-    name: qpc-release-install-pipeline
+    name: qpc-release-test-pipeline
     jobs:
       - 'qpc-{release}-{install_type}-test-pipeline'
     release:
