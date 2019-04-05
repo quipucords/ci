@@ -340,7 +340,7 @@ def runCamayocTest(testset) {{
 
 
 def runCamayocUITest(browser) {{
-    echo "Running ${{testset}} Tests"
+    echo "Running ${{browser}} Tests"
 
     sh 'cat camayoc/config.yaml'
     sh 'ls -lah'
