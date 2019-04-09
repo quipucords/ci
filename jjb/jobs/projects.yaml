@@ -60,3 +60,11 @@
       - 'container'
       - 'default'
       - 'nosupervisord'
+
+
+- project:
+    name: quipucords-build-jobs
+    jobs:
+      - '{repo}-build-job'
+    repo:
+      - 'quipucords'

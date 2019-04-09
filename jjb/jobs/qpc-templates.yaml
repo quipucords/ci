@@ -11,3 +11,19 @@
               - file-id: '62cf0ccc-220e-4177-9eab-f39701bff8d7'
                 target: 'camayoc/config.yaml'
     dsl: !include-raw: 'pipelines/qpc-tests-pipeline.groovy'
+
+
+- job-template:
+    name: '{repo}-build-job'
+    project-type: pipeline
+    sandbox: true
+    triggers:
+      - pollscm:
+          cron: '@hourly'
+    pipeline-scm:
+      scm:
+        - git:
+            url: https://github.com/quipucords/{repo}.git
+            branches:
+              - '*/master'
+            skip-tag: true
