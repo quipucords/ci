@@ -1,0 +1,13 @@
+---
+- job-template:
+    name: 'qpc-{release}-{install_type}-test-pipeline'
+    project-type: pipeline
+    sandbox: true
+    triggers:
+      - timed: '@midnight'
+    builders:
+        - config-file-provider:
+            files:
+              - file-id: '62cf0ccc-220e-4177-9eab-f39701bff8d7'
+                target: 'camayoc/config.yaml'
+    dsl: !include-raw: 'pipelines/qpc-tests-pipeline.groovy'
