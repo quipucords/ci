@@ -1,13 +1,6 @@
 // {release} {install_type}
 
-def qpc_version = "" // Better way for this?
-if ('{release}' == 'master') {{
-    qpc_version = "0.0.47"
-}} else {{
-    qpc_version = "{release}"
-}}
-
-
+def qpc_version = getQPCVersion()
 def image_name = "quipucords:${{qpc_version}}"
 def tarfile = "quipucords.${{qpc_version}}.tar"
 def targzfile = "${{tarfile}}.gz"
@@ -124,7 +117,6 @@ def getMasterQPC() {{
     sh '''\
     mkdir -p install/packages
     '''.stripIndent()
-
 }}
 
 
@@ -163,7 +155,6 @@ def installQPC(distro) {{
     }} else {{
         defaultInstall()
     }}
-    // Install the client
 }}
 
 
@@ -210,7 +201,7 @@ def containerInstall(distro) {{
 }}
 
 
-def installQpcClient(distro) {{
+def installQPCClient(distro) {{
     // Install the qpc client
     echo 'Install QPC Client'
     sh '''\
@@ -312,6 +303,8 @@ def runInstallTests(distro) {{
         set -e
         """.stripIndent()
     }}
+
+    junit "junit.xml"
 }}
 
 
@@ -392,12 +385,10 @@ stage('Run Tests') {{
                             echo "Testing inline qpc_version variable: ${{qpc_version}}"
                             getQuipucords()
                             installQPC 'centos7'
-                            runInstallTests 'centos7'
                         }}
                     }}
                 }}
             }}
-            junit 'junit.xml'
         }}
     }},
 
@@ -417,7 +408,6 @@ stage('Run Tests') {{
                             setupDocker()
                             getQuipucords()
                             installQPC 'f28'
-//                            runInstallTests 'f28'
                         }}
                     }}
                 }}
@@ -425,7 +415,7 @@ stage('Run Tests') {{
 
             stage('F28: Setup Integration Tests') {{
                 echo 'Fedora 28: Install QPC Client'
-                installQpcClient 'f28'
+                installQPCClient 'f28'
                 echo 'Fedora 28: Setup Scan Users'
                 setupScanUsers()
                 echo 'Fedora 28: Setup Camayoc'
@@ -458,13 +448,12 @@ stage('Run Tests') {{
 
             stage('F28: Install Tests') {{
                 runInstallTests 'f28'
-                junit 'junit.xml'
             }}
          }}
     }},
 
     'RHEL6 Install': {{
-        node('rhel6-os-old') {{
+        node('rhel6-os') {{
             stage('rhel6 Install') {{
                 dir('ci') {{
                     git 'https://github.com/quipucords/ci.git'
@@ -487,17 +476,14 @@ stage('Run Tests') {{
 
                                 getQuipucords()
                                 installQPC 'rhel6'
-
-                                runInstallTests 'rhel6'
                             }}
                         }}
                     }}
                 }}
             }}
-            junit 'junit.xml'
         }}
     }}, 'RHEL7 Install': {{
-        node('rhel7-os-old') {{
+        node('rhel7-os') {{
             stage('rhel7 Install') {{ dir('ci') {{
                     git 'https://github.com/quipucords/ci.git'
                 }}
@@ -517,13 +503,11 @@ stage('Run Tests') {{
                                 sh 'sudo cp rhel7-custom.repo /etc/yum.repos.d/rhel7-rcm-internal.repo'
                                 getQuipucords()
                                 installQPC 'rhel7'
-                                runInstallTests 'rhel7'
                             }}
                         }}
                     }}
                 }}
             }}
-            junit 'junit.xml'
         }}
     }}
 }}
