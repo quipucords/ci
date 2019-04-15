@@ -14,7 +14,7 @@
 
 
 - job-template:
-    name: '{repo}-build-job'
+    name: '{repo}-{version}-build-job'
     project-type: pipeline
     sandbox: true
     triggers:
@@ -25,5 +25,5 @@
         - git:
             url: https://github.com/quipucords/{repo}.git
             branches:
-              - '*/master'
+              - '*/{branch}'
             skip-tag: true
