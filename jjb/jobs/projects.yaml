@@ -60,3 +60,17 @@
       - 'container'
       - 'default'
       - 'nosupervisord'
+
+
+- project:
+    name: quipucords-build-jobs
+    jobs:
+      - '{repo}-{version}-build-job'
+    repo:
+      - 'quipucords'
+      - 'quipucords-ui'
+    version:
+      - 'master'
+      - '0.0.46':
+          branch: 'releases/0.0.46/'
+    branch: 'master'
