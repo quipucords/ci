@@ -204,15 +204,45 @@ def containerInstall(distro) {{
 def installQPCClient(distro) {{
     // Install the qpc client
     echo 'Install QPC Client'
+    // Pull Latest repo source from Copr
     sh '''\
     sudo wget -O /etc/yum.repos.d/group_quipucords-qpc-fedora-28.repo https://copr.fedorainfracloud.org/coprs/g/quipucords/qpc/repo/fedora-28/group_quipucords-qpc-fedora28.repo
     ls -la /etc/yum.repos.d/
     '''.stripIndent()
 
-    if (distro ==~ /f\d\d/) {{
-        sh 'sudo dnf -y install qpc'
+    if ('{release}' == 'master') {{
+		installMasterQPCClient(distro)
     }} else {{
-        sh 'sudo yum -y install qpc'
+        installReleasedQPCClient()
+    }}
+
+}}
+
+def installMasterQPCClient(distro) {{
+	// Install latest qpc
+	if (distro ==~ /f\d\d/) {{
+		sh 'sudo dnf -y install qpc'
+	}} else {{
+		sh 'sudo yum -y install qpc'
+	}}
+}}
+
+
+def installReleasedQPCClient() {{
+    // Pulls down current released cli
+	dir("${{WORKSPACE}}/install") {{
+		sh '''\
+		CLI_VERSION=$(cat ./install.sh | grep CLI_PACKAGE_VERSION= | cut -d"=" -f3)
+		echo "${{CLI_VERSION: :-1}}"
+		wget -O qpc-client.rpm "https://github.com/quipucords/qpc/releases/download/0.0.46/qpc-${{CLI_VERSION: :-1}}.fc28.noarch.rpm"
+        ls -la
+        # Install the rpm
+        if grep -q -i "Fedora" /etc/redhat-release; then
+            sudo dnf install -y qpc-client.rpm
+        else
+            sudo yum install -y qpc-client.rpm
+        fi
+		'''.stripIndent()
     }}
 }}
 
