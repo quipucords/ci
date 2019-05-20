@@ -69,6 +69,7 @@
     repo:
       - 'quipucords'
       - 'quipucords-ui'
+      - 'quipucords-installer'
     version:
       - 'master'
       - '0.0.46':
