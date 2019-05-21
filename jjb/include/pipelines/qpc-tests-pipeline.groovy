@@ -9,7 +9,7 @@ def install_targzfile = "${{install_tar}}.gz"
 
 def getQPCVersion() {{
     if ('{release}' == 'master') {{
-        return "0.0.47"
+        return "1.0.0"
     }} else {{
         return "{release}"
     }}
@@ -93,10 +93,17 @@ def getQuipucords() {{
 
 def getQuipucordsBuild() {{
     // Grabs the quipucords build
+    sh 'ls -la'
     echo "getQuipucords: Copying Latest build artifact..."
-    copyArtifacts filter: 'quipucords.*.tar.gz', fingerprintArtifacts: true, projectName: 'qpc-testing-build', selector: lastCompleted()
-    copyArtifacts filter: 'quipucords.*.install.tar.gz', fingerprintArtifacts: true, projectName: 'qpc-testing-build', selector: lastCompleted()
-    copyArtifacts filter: 'postgres.*.tar.gz', fingerprintArtifacts: true, projectName: 'qpc-testing-build', selector: lastCompleted()
+    copyArtifacts filter: 'quipucords.*.tar.gz', fingerprintArtifacts: true,
+                  projectName: 'quipucords-{release}-build-job', selector: lastCompleted()
+
+    copyArtifacts filter: 'quipucords.*.install.tar.gz', fingerprintArtifacts: true, projectName: 'quipucords-{release}-build-job', selector: lastCompleted()
+
+    copyArtifacts filter: 'postgres.*.tar.gz', fingerprintArtifacts: true, projectName: 'quipucords-{release}-build-job', selector: lastCompleted()
+
+
+    sh 'ls -la'
 }}
 
 
