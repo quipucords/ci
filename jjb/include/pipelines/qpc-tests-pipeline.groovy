@@ -98,7 +98,8 @@ def getQuipucordsBuild() {{
     copyArtifacts filter: 'quipucords.*.tar.gz', fingerprintArtifacts: true,
                   projectName: 'quipucords-{release}-build-job', selector: lastCompleted()
 
-    copyArtifacts filter: 'quipucords.*.install.tar.gz', fingerprintArtifacts: true, projectName: 'quipucords-{release}-build-job', selector: lastCompleted()
+    copyArtifacts filter: 'quipucords_install.tar.gz', fingerprintArtifacts:
+    true, projectName: 'quipucords-installer-{release}-build-job', selector: lastCompleted()
 
     copyArtifacts filter: 'postgres.*.tar.gz', fingerprintArtifacts: true, projectName: 'quipucords-{release}-build-job', selector: lastCompleted()
 
@@ -117,7 +118,7 @@ def getMasterQPC() {{
     echo 'Extract the installer script'
     sh """\
     echo ${{qpc_version}}
-    tar -xvzf quipucords.${{qpc_version}}.install.tar.gz
+    tar -xvzf quipucords_install.tar.gz
     """.stripIndent()
 
     echo 'Copy container to installer packages directory'
