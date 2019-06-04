@@ -95,7 +95,7 @@ def getQuipucordsBuild() {{
     // Grabs the quipucords build
     sh 'ls -la'
     echo "getQuipucords: Copying Latest build artifact..."
-    copyArtifacts filter: 'quipucords.*.tar.gz', fingerprintArtifacts: true,
+    copyArtifacts filter: 'quipucords_server_image.tar.gz', fingerprintArtifacts: true,
                   projectName: 'quipucords-{release}-build-job', selector: lastCompleted()
 
     copyArtifacts filter: 'quipucords_install.tar.gz', fingerprintArtifacts:
@@ -202,7 +202,7 @@ def containerInstall(distro) {{
     }}
 
     sh """\
-    sudo docker load -i quipucords.${{qpc_version}}.tar.gz
+    sudo docker load -i quipucords_server_image.tar.gz
     # make log dir to save server logs
     mkdir -p log
     """.stripIndent()
