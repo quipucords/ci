@@ -1,6 +1,7 @@
 // {release} {install_type}
 
 def qpc_version = getQPCVersion()
+def build_name = getBuildName()
 def image_name = "quipucords:${{qpc_version}}"
 def tarfile = "quipucords.${{qpc_version}}.tar"
 def targzfile = "${{tarfile}}.gz"
@@ -9,9 +10,17 @@ def install_targzfile = "${{install_tar}}.gz"
 
 def getQPCVersion() {{
     if ('{release}' == 'master') {{
-        return "1.0.0"
+        return "master"
     }} else {{
-        return "{release}"
+        return "latest_release"
+    }}
+}}
+
+def getBuildName() {{
+    if ('{release}' == 'master') {{
+        return "master"
+    }} else {{
+        return "latest_release"
     }}
 }}
 
@@ -93,16 +102,14 @@ def getQuipucords() {{
 
 def getQuipucordsBuild() {{
     // Grabs the quipucords build
+    def builder_name = getBuildName()
     sh 'ls -la'
     echo "getQuipucords: Copying Latest build artifact..."
-    copyArtifacts filter: 'quipucords_server_image.tar.gz', fingerprintArtifacts: true,
-                  projectName: 'quipucords-{release}-build-job', selector: lastCompleted()
+    copyArtifacts filter: 'quipucords_server_image.tar.gz', fingerprintArtifacts: true, projectName: "qpc_${{builder_name}}_server_images", selector: lastCompleted()
 
-    copyArtifacts filter: 'quipucords_install.tar.gz', fingerprintArtifacts:
-    true, projectName: 'quipucords-installer-{release}-build-job', selector: lastCompleted()
+    copyArtifacts filter: 'quipucords_install.tar.gz', fingerprintArtifacts: true, projectName: "qpc_${{builder_name}}_installer", selector: lastCompleted()
 
-    copyArtifacts filter: 'postgres.*.tar.gz', fingerprintArtifacts: true, projectName: 'quipucords-{release}-build-job', selector: lastCompleted()
-
+    copyArtifacts filter: 'postgres.*.tar.gz', fingerprintArtifacts: true, projectName: "qpc_${{builder_name}}_server_images", selector: lastCompleted()
 
     sh 'ls -la'
 }}
@@ -140,13 +147,14 @@ def getReleasedQPC() {{
 
     // Pulls down Released Container
     echo "load docker container from tarball"
-    sh "curl -k -O -sSL https://github.com/quipucords/quipucords/releases/download/{release}/quipucords.{release}.tar.gz"
+    sh "curl -k -O -sSL https://github.com/quipucords/quipucords/releases/download/{release}/quipucords_server_image.tar.gz"
     // Pulls down Released Install
-    sh "curl -k -O -sSL https://github.com/quipucords/quipucords/releases/download/{release}/quipucords.{release}.install.tar.gz"
+    // TODO: Fix this versioning
+    sh "curl -k -O -sSL https://github.com/quipucords/quipucords-installer/releases/download/0.1.1/quipucords_install.tar.gz"
 
     echo "extract the installer into ${{WORKSPACE}}/install"
 
-    sh "tar -xvzf ${{WORKSPACE}}/quipucords.{release}.install.tar.gz"
+    sh "tar -xvzf ${{WORKSPACE}}/quipucords_install.tar.gz"
 }}
 
 
