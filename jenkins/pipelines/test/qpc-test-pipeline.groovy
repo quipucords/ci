@@ -25,43 +25,14 @@ stages {
 
     stage('Setup System') {
     	steps {
-            configFileProvider([configFile(fileId:
-                '0f157b1a-7068-4c75-a672-3b1b90f97ddd', targetLocation: 'rhel7-custom.repo')]) {
-			    sh 'sudo yum update -y'
-                sh 'sudo yum -y install python36 python36-pip'
-                sh 'python3 -m pip install pipenv --user'
-		    }
-        }
-    }
+            install_deps()
+            setupDocker()
+        }//end steps
+    }//end stage
 
     stage('Setup Camayoc') {
         steps {
-            // Setup Camayoc
-    		dir('camayoc') {
-       	 		git 'https://github.com/quipucords/camayoc.git'
-
-       	 		sh '''\
-    				python3 --version
-    				python3 -m pipenv run make install-dev
-    			'''.stripIndent()
-    		}
-
-    		// Set pytest file
-    		sh '''\
-    			mkdir -p ~/.config/camayoc/
-    			cp camayoc/pytest.ini .
-    		'''.stripIndent()
-
-        	// Setup Camayoc Config File
-		    configFileProvider([configFile(fileId: '62cf0ccc-220e-4177-9eab-f39701bff8d7', targetLocation: '/home/jenkins/.config/camayoc/config.yaml')]) {
-        		sh '''\
-        			cat ~/.config/camayoc/config.yaml
-        			sed -i "s/{jenkins_slave_ip}/${OPENSTACK_PUBLIC_IP}/" ~/.config/camayoc/config.yaml
-        		'''.stripIndent()
-    		}
-
-    		sh 'python3.6 -m pip freeze'
-
+            setup_camayoc()
         }
     }
 
@@ -90,3 +61,50 @@ stages {
     }
 }
 }
+
+
+/////////////////////////
+//// Setup Functions ////
+/////////////////////////
+def install_deps() {
+    configFileProvider([configFile(fileId:
+    '0f157b1a-7068-4c75-a672-3b1b90f97ddd', targetLocation: 'rhel7-custom.repo')]) {
+	    sh 'sudo yum update -y'
+        sh 'sudo yum -y install python36 python36-pip ansible'
+        sh 'python3 -m pip install pipenv --user'
+    }//end configfile
+}//end def
+
+def setupDocker() {
+    sh """\
+    echo "OPTIONS=--log-driver=journald" > docker.conf
+    echo "DOCKER_CERT_PATH=/etc/docker" >> docker.conf
+    echo "INSECURE_REGISTRY=\\"--insecure-registry \${DOCKER_REGISTRY}\\"" >> docker.conf
+    sudo cp docker.conf /etc/sysconfig/docker
+    """.stripIndent()
+}//end def
+
+def setup_camayoc() {
+    // Pull and Install Camayoc
+   dir('camayoc') {
+    git 'https://github.com/quipucords/camayoc.git'
+    sh '''\
+        python3 --version
+    	python3 -m pipenv run make install-dev
+    '''.stripIndent()
+    }//end dir
+
+    // Set pytest file
+    sh '''\
+        mkdir -p ~/.config/camayoc/
+        cp camayoc/pytest.ini .
+    '''.stripIndent()
+
+    // Setup Camayoc Config File
+	configFileProvider([configFile(fileId: '62cf0ccc-220e-4177-9eab-f39701bff8d7', targetLocation: '/home/jenkins/.config/camayoc/config.yaml')]) {
+        sh '''\
+            cat ~/.config/camayoc/config.yaml
+            sed -i "s/{jenkins_slave_ip}/${OPENSTACK_PUBLIC_IP}/" ~/.config/camayoc/config.yaml
+        '''.stripIndent()
+    }//end configfile
+}//end def
