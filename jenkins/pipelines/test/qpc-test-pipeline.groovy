@@ -1,14 +1,14 @@
 pipeline {
-    agent { label 'f28-os' }
+    agent { label 'rhel7-os' }
 
 environment {
-    qpc_version = getQPCVersion()
-    build_name = getBuildName()
-    image_name = "quipucords:${qpc_version}"
-    tarfile = "quipucords.${qpc_version}.tar"
-    targzfile = "${tarfile}.gz"
+    //qpc_version = getQPCVersion()
+    //build_name = getBuildName()
+    //image_name = "quipucords:${qpc_version}"
+    //tarfile = "quipucords.${qpc_version}.tar"
+    //targzfile = "${tarfile}.gz"
     install_tar = "quipucords.install.tar"
-    install_targzfile = "${install_tar}.gz"
+    //install_targzfile = "${install_tar}.gz"
 }
 
 parameters {
@@ -25,8 +25,13 @@ stages {
 
     stage('Setup System') {
     	steps {
-			sh 'sudo dnf update'
-		}
+            configFileProvider([configFile(fileId:
+                '0f157b1a-7068-4c75-a672-3b1b90f97ddd', targetLocation: 'rhel7-custom.repo')]) {
+			    sh 'sudo yum update -y'
+                sh 'sudo yum -y install python36 python36-pip'
+                sh 'python3 -m pip install pipenv --user'
+		    }
+        }
     }
 
     stage('Setup Camayoc') {
@@ -37,7 +42,7 @@ stages {
 
        	 		sh '''\
     				python3 --version
-    				pipenv run make install-dev
+    				python3 -m pipenv run make install-dev
     			'''.stripIndent()
     		}
 
