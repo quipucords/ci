@@ -14,12 +14,14 @@ environment {
 parameters {
     string(defaultValue: "master", description: 'What version?', name: 'version_name')
     choice(choices: ['branch', 'tag'], description: "Branch or Tag?", name: 'version_type')
+    choice(choices: ['0.9.0', '0.9.1'], description: "Server Version", name: 'server_install_version')
+    choice(choices: ['0.9.0', '0.9.1'], description: "CLI Version", name: 'cli_install_version')
 }
 
 stages {
     stage('Build Info') {
         steps {
-            echo "Version: ${params.version_name}\nVersion Type: ${params.version_type}\nCommit: ${env.GIT_COMMIT}\n\nBuild_version: ${env.build_version}"
+            echo "Version: ${params.version_name}\nVersion Type: ${params.version_type}\nCommit: ${env.GIT_COMMIT}\n\nBuild_version: ${env.build_version}\n\nServer Install Version: ${params.server_install_version}\nCLI Install Version: ${params.cli_install_version}"
         }
     }
 
@@ -27,6 +29,18 @@ stages {
     	steps {
             install_deps()
             setupDocker()
+        }//end steps
+    }//end stage
+
+    stage('Install') {
+        steps {
+            echo "Install Server and CLI"
+            sh 'git clone https://github.com/quipucords/quipucords-installer.git'
+            dir('quipucords-installer/install') {
+                sh 'pwd'
+                sh 'ls -lah'
+                sh "./install.sh -e server_version=${params.server_install_version} -e cli_version=${params.cli_install_version}"
+            }//end dir
         }//end steps
     }//end stage
 
