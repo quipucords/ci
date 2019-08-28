@@ -29,6 +29,7 @@ stages {
     	steps {
             install_deps()
             setupDocker()
+            setupScanUsers()
         }//end steps
     }//end stage
 
@@ -39,7 +40,7 @@ stages {
             dir('quipucords-installer/install') {
                 sh 'pwd'
                 sh 'ls -lah'
-                sh "./install.sh -e server_version=${params.server_install_version} -e cli_version=${params.cli_install_version}"
+                sh "./quipucords-installer -e server_version=${params.server_install_version} -e cli_version=${params.cli_install_version} -e SERVER_DIR=${workspace}"
             }//end dir
         }//end steps
     }//end stage
@@ -47,24 +48,15 @@ stages {
     stage('Setup Camayoc') {
         steps {
             setup_camayoc()
-        }
-    }
+        }//end steps
+    }//end stage
 
-    stage('Run Camayoc Tests') {
+
+    stage('Run Camayoc API Tests') {
         steps {
-
-        // Set home dir to workspace dir
-        sh 'export XDG_CONFIG_HOME=$(pwd)'
-        sh 'ls -la ~'
-
-        dir('camayoc') {
-        	sh '''\
-        		#py.test -c pytest.ini -l -ra -s -vvv --junit-xml yupana-junit.xml --rootdir camayoc/camayoc/tests/qpc camayoc/camayoc/tests/qpc/yupana
-        		#pipenv run pytest -vvv --junit-xml yupana-junit.xml camayoc/tests/qpc/yupana
-			'''.stripIndent()
-			}
-        }
-    }
+            runCamayocTest 'api'
+        }//end steps
+    }//end stage
 
     stage('Run Test Reports') {
     	steps{
@@ -83,7 +75,7 @@ stages {
 def install_deps() {
     configFileProvider([configFile(fileId:
     '0f157b1a-7068-4c75-a672-3b1b90f97ddd', targetLocation: 'rhel7-custom.repo')]) {
-	    sh 'sudo yum update -y'
+	    //sh 'sudo yum update -y'
         sh 'sudo yum -y install python36 python36-pip ansible'
         sh 'python3 -m pip install pipenv --user'
     }//end configfile
@@ -110,15 +102,95 @@ def setup_camayoc() {
 
     // Set pytest file
     sh '''\
-        mkdir -p ~/.config/camayoc/
+        pwd
         cp camayoc/pytest.ini .
     '''.stripIndent()
 
-    // Setup Camayoc Config File
-	configFileProvider([configFile(fileId: '62cf0ccc-220e-4177-9eab-f39701bff8d7', targetLocation: '/home/jenkins/.config/camayoc/config.yaml')]) {
+    // Setup ssh credentials
+    withCredentials([file(credentialsId: '4c692211-c5e1-4354-8e1b-b9d0276c29d9', variable: 'ID_JENKINS_RSA')]) {
         sh '''\
-            cat ~/.config/camayoc/config.yaml
-            sed -i "s/{jenkins_slave_ip}/${OPENSTACK_PUBLIC_IP}/" ~/.config/camayoc/config.yaml
+            mkdir -p /home/jenkins/.ssh
+            cp "${ID_JENKINS_RSA}" /home/jenkins/.ssh/id_rsa
+            chmod 0600 /home/jenkins/.ssh/id_rsa
+            cat /home/jenkins/.ssh/id_rsa
+        '''.stripIndent()
+    }//end withCredentials
+
+    // Setup Camayoc Config File
+	configFileProvider([configFile(fileId: '62cf0ccc-220e-4177-9eab-f39701bff8d7', targetLocation: 'camayoc/camayoc/config.yaml')]) {
+        sh '''\
+            pwd
+            cat camayoc/camayoc/config.yaml
+            sed -i "s/{jenkins_slave_ip}/${OPENSTACK_PUBLIC_IP}/" camayoc/camayoc/config.yaml
+            cat camayoc/camayoc/config.yaml
         '''.stripIndent()
     }//end configfile
 }//end def
+
+
+def setupScanUsers() {
+    dir('ci') {
+        git 'https://github.com/quipucords/ci.git'
+    }//end dir
+
+    sshagent(['390bdc1f-73c6-457e-81de-9e794478e0e']) {
+        withCredentials([file(credentialsId: '50dc19ce-555f-422c-af38-3b5ede422bb4', variable: 'ID_JENKINS_RSA_PUB')]) {
+            sh 'sudo yum -y install ansible'
+
+            sh '''\
+                cat > jenkins-slave-hosts <<EOF
+                [jenkins-slave]
+                ${OPENSTACK_PUBLIC_IP}
+
+                [jenkins-slave:vars]
+                ansible_user=jenkins
+                ansible_ssh_extra_args=-o StrictHostKeyChecking=no
+                ssh_public_key_file=$(cat ${ID_JENKINS_RSA_PUB})
+                EOF
+            '''.stripIndent()
+
+            sh 'ansible-playbook -b -i jenkins-slave-hosts ci/ansible/sonar-setup-scan-users.yaml'
+        }//end withCredentials
+    }//end sshagent
+}//end def
+
+
+////////////////////
+// Test Functions //
+////////////////////
+def runCamayocTest(testset) {
+    echo "Running ${testset} Tests"
+
+    sh 'ls -lah'
+    sh 'pwd'
+    sshagent(['390bdc1f-73c6-457e-81de-9e794478e0e']) {
+        dir('camayoc') {
+        sh 'pwd'
+        sh 'sudo docker ps -a'
+        sh """
+            set +e
+            export XDG_CONFIG_HOME=\$(pwd)
+            echo \$XDG_CONFIG_HOME
+            cat \$XDG_CONFIG_HOME/camayoc/config.yaml
+#cat \$(XDG_CONFIG_HOME)/camayoc/config.yaml # Check for config file
+            python3 -m pipenv run py.test -c pytest.ini -l -ra -s -vvv --junit-xml $testset-junit.xml --rootdir camayoc/tests/qpc camayoc/tests/qpc/$testset
+            set -e
+
+            sudo docker rm \$(sudo docker stop \$(sudo docker ps -aq))
+            #tar -cvzf test-$testset-logs.tar.gz log
+            #sudo rm -rf log
+        """.stripIndent()
+        }//end dir
+    }//end sshagent
+    //archiveArtifacts "test-$testset-logs.tar.gz"
+    sh 'ls -la'
+    echo "$testset-junit.xml"
+    sh "cat $testset-junit.xml"
+    archiveArtifacts "$testset-junit.xml"
+
+     junit "$testset-junit.xml"
+    // step([$class: 'XUnitBuilder',
+    // thresholds: [[$class: 'FailedThreshold', unstableThreshold: '1']],
+    // tools: [[$class: 'JUnitType', pattern: "$testset-junit.xml"]]])
+}
+
