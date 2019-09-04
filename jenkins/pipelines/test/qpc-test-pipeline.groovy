@@ -33,27 +33,27 @@ stages {
         }//end steps
     }//end stage
 
-    stage('Install') {
-        steps {
-            echo "Install Server and CLI"
-            sh 'git clone https://github.com/quipucords/quipucords-installer.git'
-            dir('quipucords-installer/install') {
-                sh 'pwd'
-                sh 'ls -lah'
-                sh "./quipucords-installer -e server_version=${params.server_install_version} -e cli_version=${params.cli_install_version} -e SERVER_DIR=${workspace}"
-            }//end dir
-        }//end steps
-    }//end stage
-
     stage('Setup Camayoc') {
         steps {
             setup_camayoc()
         }//end steps
     }//end stage
 
+    stage('Install') {
+        steps {
+            echo "Install Server and CLI"
+            sh 'git clone https://github.com/quipucords/quipucords-installer.git'
+            dir('quipucords-installer/install') {
+                sh "pwd"
+                sh "ls -lah"
+                sh "./quipucords-installer -e server_version=${params.server_install_version} -e cli_version=${params.cli_install_version} -e server_install_dir=${workspace}"
+            }//end dir
+        }//end steps
+    }//end stage
 
     stage('Run Camayoc API Tests') {
         steps {
+            sh 'sleep 60'
             runCamayocTest 'api'
         }//end steps
     }//end stage
@@ -106,16 +106,6 @@ def setup_camayoc() {
         cp camayoc/pytest.ini .
     '''.stripIndent()
 
-    // Setup ssh credentials
-    withCredentials([file(credentialsId: '4c692211-c5e1-4354-8e1b-b9d0276c29d9', variable: 'ID_JENKINS_RSA')]) {
-        sh '''\
-            mkdir -p /home/jenkins/.ssh
-            cp "${ID_JENKINS_RSA}" /home/jenkins/.ssh/id_rsa
-            chmod 0600 /home/jenkins/.ssh/id_rsa
-            cat /home/jenkins/.ssh/id_rsa
-        '''.stripIndent()
-    }//end withCredentials
-
     // Setup Camayoc Config File
 	configFileProvider([configFile(fileId: '62cf0ccc-220e-4177-9eab-f39701bff8d7', targetLocation: 'camayoc/camayoc/config.yaml')]) {
         sh '''\
@@ -125,6 +115,20 @@ def setup_camayoc() {
             cat camayoc/camayoc/config.yaml
         '''.stripIndent()
     }//end configfile
+
+    // Setup ssh credentials
+    withCredentials([file(credentialsId: '4c692211-c5e1-4354-8e1b-b9d0276c29d9', variable: 'ID_JENKINS_RSA')]) {
+        String ssh_keyfile_string = "${workspace}/sshkeys/id_rsa"
+        ssh_keyfile = ssh_keyfile_string.replace("/", "\\/")
+        sh """\
+            mkdir -p "${workspace}"/sshkeys
+            cp "${ID_JENKINS_RSA}" "${ssh_keyfile_string}"
+            chmod 0600 "${ssh_keyfile_string}"
+            cat "${ssh_keyfile_string}"
+            ## Edit ssh location in config file
+            sed -i "s/{jenkins_ssh_file}/\\/sshkeys\\/id_rsa/" camayoc/camayoc/config.yaml
+        """.stripIndent()
+    }//end withCredentials
 }//end def
 
 
@@ -167,6 +171,8 @@ def runCamayocTest(testset) {
         dir('camayoc') {
         sh 'pwd'
         sh 'sudo docker ps -a'
+        sh 'sudo docker exec quipucords ls -lah'
+        sh 'sudo docker exec quipucords ls /sshkeys -lah'
         sh """
             set +e
             export XDG_CONFIG_HOME=\$(pwd)
@@ -180,15 +186,15 @@ def runCamayocTest(testset) {
             #tar -cvzf test-$testset-logs.tar.gz log
             #sudo rm -rf log
         """.stripIndent()
+        sh 'ls -la'
+        echo "$testset-junit.xml"
+        sh "cat $testset-junit.xml"
+        archiveArtifacts "$testset-junit.xml"
+
+        junit "$testset-junit.xml"
         }//end dir
     }//end sshagent
     //archiveArtifacts "test-$testset-logs.tar.gz"
-    sh 'ls -la'
-    echo "$testset-junit.xml"
-    sh "cat $testset-junit.xml"
-    archiveArtifacts "$testset-junit.xml"
-
-     junit "$testset-junit.xml"
     // step([$class: 'XUnitBuilder',
     // thresholds: [[$class: 'FailedThreshold', unstableThreshold: '1']],
     // tools: [[$class: 'JUnitType', pattern: "$testset-junit.xml"]]])
