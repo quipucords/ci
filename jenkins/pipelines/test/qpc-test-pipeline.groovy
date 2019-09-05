@@ -58,13 +58,30 @@ stages {
         }//end steps
     }//end stage
 
-    stage('Run Test Reports') {
-    	steps{
-    		dir('camayoc') {
-    			//junit 'yupana-junit.xml'
-    		}
-    	}
-    }
+    stage('Run Camayoc CLI Tests') {
+        steps {
+            runCamayocTest 'cli'
+        }//end steps
+    }//end stage
+
+    stage('Run Camayoc chrome Tests') {
+        steps {
+            runCamayocUITest 'chrome'
+        }//end steps
+    }//end stage
+
+    stage('Run Camayoc firefox Tests') {
+        steps {
+            runCamayocUITest 'firefox'
+        }//end steps
+    }//end stage
+//    stage('Run Test Reports') {
+//    	steps{
+//    		dir('camayoc') {
+//    			//junit 'yupana-junit.xml'
+//    		}//dir
+//    	}//steps
+//    }//stage
 }
 }
 
@@ -182,7 +199,7 @@ def runCamayocTest(testset) {
             python3 -m pipenv run py.test -c pytest.ini -l -ra -s -vvv --junit-xml $testset-junit.xml --rootdir camayoc/tests/qpc camayoc/tests/qpc/$testset
             set -e
 
-            sudo docker rm \$(sudo docker stop \$(sudo docker ps -aq))
+#sudo docker rm \$(sudo docker stop \$(sudo docker ps -aq))
             #tar -cvzf test-$testset-logs.tar.gz log
             #sudo rm -rf log
         """.stripIndent()
@@ -200,3 +217,32 @@ def runCamayocTest(testset) {
     // tools: [[$class: 'JUnitType', pattern: "$testset-junit.xml"]]])
 }
 
+def runCamayocUITest(browser) {
+    echo "Running ${browser} Tests"
+
+    sh 'ls -lah'
+    sshagent(['390bdc1f-73c6-457e-81de-9e794478e0e']) {
+        dir('camayoc') {
+            sh "sudo docker run --net='host' -d -p 4444:4444 -v /dev/shm:/dev/shm:z -v /tmp:/tmp:z selenium/standalone-$browser"
+            sleep 3
+
+            sh """\
+                set +e
+                export XDG_CONFIG_HOME=\$(pwd)
+                echo \$XDG_CONFIG_HOME
+                export SELENIUM_DRIVER=$browser
+                cat \$XDG_CONFIG_HOME/camayoc/config.yaml
+                python3 -m pipenv run py.test -c pytest.ini -l -ra -vvv --junit-prefix $browser --junit-xml ui-$browser-junit.xml --rootdir camayoc/tests/qpc camayoc/tests/qpc/ui
+                set -e
+
+                # sudo docker rm \$(sudo docker stop \$(sudo docker ps -aq))
+                # tar -cvzf test-ui-$browser-logs.tar.gz log
+                # sudo rm -rf log
+            """.stripIndent()
+
+            echo 'Archiving artifacts'
+            //archiveArtifacts "test-ui-$browser-logs.tar.gz"
+            junit "ui-$browser-junit.xml"
+        }//end dir
+    }//end sshagent
+}//end def
