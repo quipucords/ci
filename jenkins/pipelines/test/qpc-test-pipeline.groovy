@@ -2,13 +2,7 @@ pipeline {
     agent { label 'rhel7-os' }
 
 environment {
-    //qpc_version = getQPCVersion()
-    //build_name = getBuildName()
-    //image_name = "quipucords:${qpc_version}"
-    //tarfile = "quipucords.${qpc_version}.tar"
-    //targzfile = "${tarfile}.gz"
     install_tar = "quipucords.install.tar"
-    //install_targzfile = "${install_tar}.gz"
 }
 
 parameters {
@@ -75,14 +69,7 @@ stages {
             runCamayocUITest 'firefox'
         }//end steps
     }//end stage
-//    stage('Run Test Reports') {
-//    	steps{
-//    		dir('camayoc') {
-//    			//junit 'yupana-junit.xml'
-//    		}//dir
-//    	}//steps
-//    }//stage
-}
+    }
 }
 
 
@@ -93,8 +80,9 @@ def install_deps() {
     configFileProvider([configFile(fileId:
     '0f157b1a-7068-4c75-a672-3b1b90f97ddd', targetLocation: 'rhel7-custom.repo')]) {
 	    //sh 'sudo yum update -y'
-        sh 'sudo yum -y install python36 python36-pip ansible'
+        sh 'sudo yum -y install python36 python36-pip ansible podman'
         sh 'python3 -m pip install pipenv --user'
+        sh 'sudo cat /etc/containers/registries.conf'
     }//end configfile
 }//end def
 
@@ -112,6 +100,7 @@ def setup_camayoc() {
    dir('camayoc') {
     git 'https://github.com/quipucords/camayoc.git'
     sh '''\
+        git checkout issues/333
         python3 --version
     	python3 -m pipenv run make install-dev
     '''.stripIndent()
@@ -195,13 +184,9 @@ def runCamayocTest(testset) {
             export XDG_CONFIG_HOME=\$(pwd)
             echo \$XDG_CONFIG_HOME
             cat \$XDG_CONFIG_HOME/camayoc/config.yaml
-#cat \$(XDG_CONFIG_HOME)/camayoc/config.yaml # Check for config file
             python3 -m pipenv run py.test -c pytest.ini -l -ra -s -vvv --junit-xml $testset-junit.xml --rootdir camayoc/tests/qpc camayoc/tests/qpc/$testset
             set -e
-
-#sudo docker rm \$(sudo docker stop \$(sudo docker ps -aq))
-            #tar -cvzf test-$testset-logs.tar.gz log
-            #sudo rm -rf log
+            # tar -cvzf test-$testset-logs.tar.gz log
         """.stripIndent()
         sh 'ls -la'
         echo "$testset-junit.xml"
@@ -212,9 +197,6 @@ def runCamayocTest(testset) {
         }//end dir
     }//end sshagent
     //archiveArtifacts "test-$testset-logs.tar.gz"
-    // step([$class: 'XUnitBuilder',
-    // thresholds: [[$class: 'FailedThreshold', unstableThreshold: '1']],
-    // tools: [[$class: 'JUnitType', pattern: "$testset-junit.xml"]]])
 }
 
 def runCamayocUITest(browser) {
@@ -234,8 +216,6 @@ def runCamayocUITest(browser) {
                 cat \$XDG_CONFIG_HOME/camayoc/config.yaml
                 python3 -m pipenv run py.test -c pytest.ini -l -ra -vvv --junit-prefix $browser --junit-xml ui-$browser-junit.xml --rootdir camayoc/tests/qpc camayoc/tests/qpc/ui
                 set -e
-
-                # sudo docker rm \$(sudo docker stop \$(sudo docker ps -aq))
                 # tar -cvzf test-ui-$browser-logs.tar.gz log
                 # sudo rm -rf log
             """.stripIndent()
