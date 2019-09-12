@@ -1,7 +1,6 @@
 // {release} {install_type}
 
 def qpc_version = getQPCVersion()
-def build_name = getBuildName()
 def image_name = "quipucords:${{qpc_version}}"
 def tarfile = "quipucords.${{qpc_version}}.tar"
 def targzfile = "${{tarfile}}.gz"
@@ -10,25 +9,9 @@ def install_targzfile = "${{install_tar}}.gz"
 
 def getQPCVersion() {{
     if ('{release}' == 'master') {{
-        return "master"
+        return "1.0.0"
     }} else {{
         return "{release}"
-    }}
-}}
-
-def getCLIVersion() {{
-    if ('{release}' == 'master') {{
-        return "master"
-    }} else {{
-        return "0.9.0"
-    }}
-}}
-
-def getBuildName() {{
-    if ('{release}' == 'master') {{
-        return "master"
-    }} else {{
-        return "latest_release"
     }}
 }}
 
@@ -42,23 +25,6 @@ def setupDocker() {{
     echo "INSECURE_REGISTRY=\\"--insecure-registry \${{DOCKER_REGISTRY}}\\"" >> docker.conf
     sudo cp docker.conf /etc/sysconfig/docker
     """.stripIndent()
-}}
-
-def setupPython3() {{
-    // Currently for RHEL7
-	echo "Python3 Setup"
-    sh '''\
-    # wget https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
-    # sudo yum install epel-release-latest-7.noarch.rpm
-	sudo yum update -y
-    # sudo yum -y install @development
-	sudo yum -y install python36 python36-pip
-    # scl enable python36 bash
-	python --version
-    python3 --version
-    pip --version
-    pip3 --version
-    '''.stripIndent()
 }}
 
 
@@ -127,14 +93,16 @@ def getQuipucords() {{
 
 def getQuipucordsBuild() {{
     // Grabs the quipucords build
-    def builder_name = getBuildName()
     sh 'ls -la'
     echo "getQuipucords: Copying Latest build artifact..."
-    copyArtifacts filter: 'quipucords_server_image.tar.gz', fingerprintArtifacts: true, projectName: "qpc_${{builder_name}}_server_images", selector: lastCompleted()
+    copyArtifacts filter: 'quipucords_server_image.tar.gz', fingerprintArtifacts: true,
+                  projectName: 'quipucords-{release}-build-job', selector: lastCompleted()
 
-    copyArtifacts filter: 'quipucords_install.tar.gz', fingerprintArtifacts: true, projectName: "qpc_${{builder_name}}_installer", selector: lastCompleted()
+    copyArtifacts filter: 'quipucords_install.tar.gz', fingerprintArtifacts:
+    true, projectName: 'quipucords-installer-{release}-build-job', selector: lastCompleted()
 
-    copyArtifacts filter: 'postgres.*.tar.gz', fingerprintArtifacts: true, projectName: "qpc_${{builder_name}}_server_images", selector: lastCompleted()
+    copyArtifacts filter: 'postgres.*.tar.gz', fingerprintArtifacts: true, projectName: 'quipucords-{release}-build-job', selector: lastCompleted()
+
 
     sh 'ls -la'
 }}
@@ -172,14 +140,13 @@ def getReleasedQPC() {{
 
     // Pulls down Released Container
     echo "load docker container from tarball"
-    sh "curl -vvvvv -k -O -sSL https://github.com/quipucords/quipucords/releases/download/{release}/quipucords_server_image.tar.gz"
+    sh "curl -k -O -sSL https://github.com/quipucords/quipucords/releases/download/{release}/quipucords.{release}.tar.gz"
     // Pulls down Released Install
-    // TODO: Fix this versioning
-    sh "curl -k -O -sSL https://github.com/quipucords/quipucords-installer/releases/download/0.1.1/quipucords_install.tar.gz"
+    sh "curl -k -O -sSL https://github.com/quipucords/quipucords/releases/download/{release}/quipucords.{release}.install.tar.gz"
 
     echo "extract the installer into ${{WORKSPACE}}/install"
 
-    sh "tar -xvzf ${{WORKSPACE}}/quipucords_install.tar.gz"
+    sh "tar -xvzf ${{WORKSPACE}}/quipucords.{release}.install.tar.gz"
 }}
 
 
@@ -272,9 +239,10 @@ def installMasterQPCClient(distro) {{
 def installReleasedQPCClient() {{
     // Pulls down current released cli
 	dir("${{WORKSPACE}}/install") {{
-        def CLI_VERSION = getCLIVersion()
-        sh """\
-        wget -O qpc-client.rpm "https://github.com/quipucords/qpc/releases/download/${{CLI_VERSION}}/qpc.el7.noarch.rpm"
+		sh '''\
+		CLI_VERSION=$(cat ./install.sh | grep CLI_PACKAGE_VERSION= | cut -d"=" -f3)
+		echo "${{CLI_VERSION: :-1}}"
+		wget -O qpc-client.rpm "https://github.com/quipucords/qpc/releases/download/0.0.46/qpc-${{CLI_VERSION: :-1}}.fc28.noarch.rpm"
         ls -la
         # Install the rpm
         if grep -q -i "Fedora" /etc/redhat-release; then
@@ -282,7 +250,7 @@ def installReleasedQPCClient() {{
         else
             sudo yum install -y qpc-client.rpm
         fi
-		""".stripIndent()
+		'''.stripIndent()
     }}
 }}
 
@@ -298,7 +266,7 @@ def setupScanUsers() {{
 
     sshagent(['390bdc1f-73c6-457e-81de-9e794478e0e']) {{
         withCredentials([file(credentialsId: '50dc19ce-555f-422c-af38-3b5ede422bb4', variable: 'ID_JENKINS_RSA_PUB')]) {{
-            sh 'sudo yum -y install ansible'
+            sh 'sudo dnf -y install ansible'
 
             sh '''\
             cat > jenkins-slave-hosts <<EOF
@@ -324,7 +292,7 @@ def setupCamayoc() {{
     }}
 
     sh '''\
-    sudo python36 -m pip install ./camayoc[dev]
+    sudo pip install ./camayoc[dev]
     cp camayoc/pytest.ini .
     '''.stripIndent()
 
@@ -360,7 +328,7 @@ def runInstallTests(distro) {{
 
         sh '''\
         set +e
-        nosetests --with-xunit --xunit-file=$distro-install-junit.xml ci/scripts/quipucords/master/install/test_install.py
+        nosetests --with-xunit --xunit-file=junit.xml ci/scripts/quipucords/master/install/test_install.py
         set -e
         '''.stripIndent()
     }} else {{
@@ -369,12 +337,12 @@ def runInstallTests(distro) {{
 
         sh """\
         set +e
-        pytest --junit-prefix ${{distro}} --junit-xml $distro-install-junit.xml ci/scripts/quipucords/master/install/test_install.py
+        pytest --junit-prefix ${{distro}} --junit-xml junit.xml ci/scripts/quipucords/master/install/test_install.py
         set -e
         """.stripIndent()
     }}
 
-    // junit "junit.xml"
+    junit "junit.xml"
 }}
 
 
@@ -396,16 +364,9 @@ def runCamayocTest(testset) {{
         sudo rm -rf log
         """.stripIndent()
     }}
+    echo 'Archiving artifacts'
     archiveArtifacts "test-$testset-logs.tar.gz"
-    sh 'ls -la'
-    echo "$testset-junit.xml"
-    sh "cat $testset-junit.xml"
-    archiveArtifacts "$testset-junit.xml"
-
-    // junit "$testset-junit.xml"
-    // step([$class: 'XUnitBuilder',
-    // thresholds: [[$class: 'FailedThreshold', unstableThreshold: '1']],
-    // tools: [[$class: 'JUnitType', pattern: "$testset-junit.xml"]]])
+    junit "$testset-junit.xml"
 }}
 
 
@@ -435,7 +396,7 @@ def runCamayocUITest(browser) {{
 
     echo 'Archiving artifacts'
     archiveArtifacts "test-ui-$browser-logs.tar.gz"
-    // junit "ui-$browser-junit.xml"
+    junit "ui-$browser-junit.xml"
 }}
 
 
@@ -462,40 +423,72 @@ stage('Run Tests') {{
                             echo "Testing inline qpc_version variable: ${{qpc_version}}"
                             getQuipucords()
                             installQPC 'centos7'
+                        }}
+                    }}
+                }}
+            }}
+        }}
+    }},
 
-//                            sh 'sudo yum install epel-release'
-//                            sh 'sudo yum install -y python36 python36-pip'
+
+    'Fedora 28': {{
+        node('f28-os') {{
+            stage('Fedora 28 Install') {{
+                dir('ci') {{
+                    git 'https://github.com/quipucords/ci.git'
+                }}
+
+                sshagent(['390bdc1f-73c6-457e-81de-9e794478e0e']) {{
+                    withCredentials([file(credentialsId:
+                    '4c692211-c5e1-4354-8e1b-b9d0276c29d9', variable: 'ID_JENKINS_RSA')]) {{
+                        withEnv(['DISTRO=f28', 'RELEASE={release}']) {{
+                            echo 'Fedora 28: Configure Docker'
+                            setupDocker()
+                            getQuipucords()
+                            installQPC 'f28'
                         }}
                     }}
                 }}
             }}
 
-//            stage('Centos7: Setup Integration Tests') {{
-//                echo 'Centos 7: Install QPC Client'
-//                installQPCClient 'centos7'
-//                echo 'Centos 7: Setup Scan Users'
-//                setupScanUsers()
-//                echo 'Centos 7: Setup Camayoc'
-//                setupCamayoc()
-//            }}
-//
-//            stage('Centos7: test api') {{
-//                echo 'Centos 7: Test API'
-//                startQPCServer()
-//                runCamayocTest 'api'
-//            }}
-//
-//            stage('Centos7: Test CLI') {{
-//                echo 'Centos 7: Test CLI'
-//                startQPCServer()
-//                runCamayocTest 'cli'
-//            }}
+            stage('F28: Setup Integration Tests') {{
+                echo 'Fedora 28: Install QPC Client'
+                installQPCClient 'f28'
+                echo 'Fedora 28: Setup Scan Users'
+                setupScanUsers()
+                echo 'Fedora 28: Setup Camayoc'
+                setupCamayoc()
+            }}
 
+            stage('F28: test api') {{
+                echo 'Fedora 28: Test API'
+                startQPCServer()
+                runCamayocTest 'api'
+            }}
 
-        }}
+            stage('F28: Test CLI') {{
+                echo 'Fedora 28: Test CLI'
+                startQPCServer()
+                runCamayocTest 'cli'
+            }}
+
+            stage('F28: Test UI Chrome') {{
+                echo 'Fedora 28: Test UI Chrome'
+                startQPCServer()
+                runCamayocUITest 'chrome'
+            }}
+
+            stage('F28: Test UI Firefox') {{
+                echo 'Fedora 28: Test UI Firefox'
+                startQPCServer()
+                runCamayocUITest 'firefox'
+            }}
+
+            stage('F28: Install Tests') {{
+                runInstallTests 'f28'
+            }}
+         }}
     }},
-
-
 
     'RHEL6 Install': {{
         node('rhel6-os') {{
@@ -529,9 +522,7 @@ stage('Run Tests') {{
         }}
     }}, 'RHEL7 Install': {{
         node('rhel7-os') {{
-            sh 'sudo yum list installed'
-            stage('rhel7 Install') {{
-                dir('ci') {{
+            stage('rhel7 Install') {{ dir('ci') {{
                     git 'https://github.com/quipucords/ci.git'
                 }}
 
@@ -548,36 +539,12 @@ stage('Run Tests') {{
                                 setupDocker()
 
                                 sh 'sudo cp rhel7-custom.repo /etc/yum.repos.d/rhel7-rcm-internal.repo'
-
-								setupPython3()
-
                                 getQuipucords()
                                 installQPC 'rhel7'
                             }}
                         }}
                     }}
                 }}
-            }}
-            stage('RHEL7: Setup Integration Tests') {{
-                echo 'RHEL 7: Install QPC Client'
-                installQPCClient 'centos7'
-                echo 'RHEL 7: Setup Scan Users'
-                setupScanUsers()
-                echo 'RHEL 7: Setup Camayoc'
-                setupCamayoc()
-            }}
-
-            stage('RHEL7: test api') {{
-                echo 'RHEL 7: Test API'
-                sh 'sudo yum list installed'
-                startQPCServer()
-                runCamayocTest 'api'
-            }}
-
-            stage('RHEL7: Test CLI') {{
-                echo 'RHEL 7: Test CLI'
-                startQPCServer()
-                runCamayocTest 'cli'
             }}
         }}
     }}
