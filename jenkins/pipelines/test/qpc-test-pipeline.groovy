@@ -47,7 +47,7 @@ stages {
 
     stage('Run Camayoc API Tests') {
         steps {
-            sh 'sleep 60'
+            sh 'sleep 30'
             runCamayocTest 'api'
         }//end steps
     }//end stage
