@@ -40,7 +40,8 @@ stages {
             dir('quipucords-installer/install') {
                 sh "pwd"
                 sh "ls -lah"
-                sh "./quipucords-installer -e server_version=${params.server_install_version} -e cli_version=${params.cli_install_version} -e server_install_dir=${workspace}"
+                sh 'sudo podman pull postgres:9.6.10'
+                sh "sudo ./quipucords-installer -e server_version=${params.server_install_version} -e cli_version=${params.cli_install_version} -e server_install_dir=${workspace}"
             }//end dir
         }//end steps
     }//end stage
@@ -176,9 +177,9 @@ def runCamayocTest(testset) {
     sshagent(['390bdc1f-73c6-457e-81de-9e794478e0e']) {
         dir('camayoc') {
         sh 'pwd'
-        sh 'sudo docker ps -a'
-        sh 'sudo docker exec quipucords ls -lah'
-        sh 'sudo docker exec quipucords ls /sshkeys -lah'
+        //sh 'sudo docker ps -a'
+        //sh 'sudo docker exec quipucords ls -lah'
+        //sh 'sudo docker exec quipucords ls /sshkeys -lah'
         sh """
             set +e
             export XDG_CONFIG_HOME=\$(pwd)
