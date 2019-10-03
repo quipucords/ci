@@ -30,14 +30,14 @@
     dest: /etc/yum.repos.d/custom.repo
   when: custom_repo_file is defined
 
-- name: Install epel
-  yum_repository:
-    name: epel
-    description: EPEL YUM repo
-    baseurl: "{{ epel_base_url }}"
-    metalink: "{{ epel_metalink }}" 
-    gpgcheck: false
-  when: ansible_distribution == 'RedHat' and ansible_distribution_major_version <= 7 
+  #- name: Install epel
+  #  yum_repository:
+  #    name: epel
+  #    description: EPEL YUM repo
+  #    baseurl: "{{ epel_base_url }}"
+  #    metalink: "{{ epel_metalink }}" 
+  #    gpgcheck: false
+  #  when: ansible_distribution == 'RedHat' and ansible_distribution_major_version <= 7 
 
 - name: Install required packages.
   package:
@@ -45,15 +45,15 @@
     state: installed
   with_items:
     - curl
-    - docker
+      #    - docker
     - gcc
     - git
     - java
     - libffi-devel
-    - libselinux-python
+#    - libselinux-python
     - openssl-devel
-    - python-devel
-    - python2-pip
+    - python36-devel
+    - python3-pip
     - redhat-lsb-core
     - redhat-rpm-config
     - vim
