@@ -1,5 +1,5 @@
 pipeline {
-    agent { label 'rhel7-os' }
+    agent { label "${params.node_os}" }
 
 environment {
     install_tar = "quipucords.install.tar"
@@ -7,6 +7,7 @@ environment {
 
 parameters {
     string(defaultValue: "master", description: 'What version?', name: 'version_name')
+    choice(choices: ['rhel7-os', 'rhel8-os'], description: "Node OS", name: 'node_os')
     choice(choices: ['branch', 'tag'], description: "Branch or Tag?", name: 'version_type')
     choice(choices: ['0.9.0', '0.9.1'], description: "Server Version", name: 'server_install_version')
     choice(choices: ['0.9.0', '0.9.1'], description: "CLI Version", name: 'cli_install_version')
@@ -15,7 +16,8 @@ parameters {
 stages {
     stage('Build Info') {
         steps {
-            echo "Version: ${params.version_name}\nVersion Type: ${params.version_type}\nCommit: ${env.GIT_COMMIT}\n\nBuild_version: ${env.build_version}\n\nServer Install Version: ${params.server_install_version}\nCLI Install Version: ${params.cli_install_version}"
+            echo "Version: ${params.version_name}\nVersion Type: ${params.version_type}\nCommit: ${env.GIT_COMMIT}\n\nNode OS: ${env.node_os}\n\nServer Install Version: ${params.server_install_version}\nCLI Install Version: ${params.cli_install_version}"
+            sh 'cat /etc/redhat-release'
         }
     }
 
@@ -59,17 +61,17 @@ stages {
         }//end steps
     }//end stage
 
-    stage('Run Camayoc chrome Tests') {
-        steps {
-            runCamayocUITest 'chrome'
-        }//end steps
-    }//end stage
-
-    stage('Run Camayoc firefox Tests') {
-        steps {
-            runCamayocUITest 'firefox'
-        }//end steps
-    }//end stage
+//    stage('Run Camayoc chrome Tests') {
+//        steps {
+//            runCamayocUITest 'chrome'
+//        }//end steps
+//    }//end stage
+//
+//    stage('Run Camayoc firefox Tests') {
+//        steps {
+//            runCamayocUITest 'firefox'
+//        }//end steps
+//    }//end stage
     }
 }
 
@@ -81,7 +83,8 @@ def install_deps() {
     configFileProvider([configFile(fileId:
     '0f157b1a-7068-4c75-a672-3b1b90f97ddd', targetLocation: 'rhel7-custom.repo')]) {
 	    //sh 'sudo yum update -y'
-        sh 'sudo yum -y install python36 python36-pip ansible podman'
+        //sh 'sudo yum -y install python36 python36-pip ansible podman'
+        sh 'sudo yum -y install python3 python3-pip ansible podman'
         sh 'python3 -m pip install pipenv --user'
         sh 'sudo cat /etc/containers/registries.conf'
     }//end configfile
@@ -176,10 +179,6 @@ def runCamayocTest(testset) {
     sh 'pwd'
     sshagent(['390bdc1f-73c6-457e-81de-9e794478e0e']) {
         dir('camayoc') {
-        sh 'pwd'
-        //sh 'sudo docker ps -a'
-        //sh 'sudo docker exec quipucords ls -lah'
-        //sh 'sudo docker exec quipucords ls /sshkeys -lah'
         sh """
             set +e
             export XDG_CONFIG_HOME=\$(pwd)
