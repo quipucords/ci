@@ -29,22 +29,9 @@ stages {
         }//end steps
     }//end stage
 
-    stage('Setup Camayoc') {
-        steps {
-            setup_camayoc()
-        }//end steps
-    }//end stage
-
     stage('Install') {
         steps {
-            echo "Install Server and CLI"
-            sh 'git clone https://github.com/quipucords/quipucords-installer.git'
-            dir('quipucords-installer/install') {
-                sh "pwd"
-                sh "ls -lah"
-                sh 'sudo podman pull postgres:9.6.10'
-                sh "sudo ./quipucords-installer -e server_version=${params.server_install_version} -e cli_version=${params.cli_install_version} -e server_install_dir=${workspace}"
-            }//end dir
+            qpc_tools_install()
         }//end steps
     }//end stage
 
@@ -52,6 +39,12 @@ stages {
         steps {
             sh 'sleep 30'
             runCamayocTest 'api'
+        }//end steps
+    }//end stage
+
+    stage('Setup Camayoc') {
+        steps {
+            setup_camayoc()
         }//end steps
     }//end stage
 
@@ -90,6 +83,22 @@ def install_deps() {
     }//end configfile
 }//end def
 
+
+def qpc_tools_install() {
+    echo "Install Server and CLI using qpc-tools"
+    // Install qpc-tools (break into own function?)
+    sh 'sudo dnf install -y https://github.com/quipucords/qpc-tools/releases/latest/download/qpc-tools.el8.noarch.rpm'
+
+    sh "pwd"
+    sh "ls -lah"
+    sh 'sudo podman pull postgres:9.6.10'
+    // Install CLI
+    sh "sudo qpc-tools cli install --version ${params.server_install_version} --home-dir ${workspace}"
+    // Install Server
+    sh "sudo qpc-tools server install --version ${params.server_install_version} --password qpcpassw0rd --db-password pass --home-dir ${workspace}"
+}//end def
+
+
 def setupDocker() {
     sh """\
     echo "OPTIONS=--log-driver=journald" > docker.conf
@@ -104,7 +113,7 @@ def setup_camayoc() {
    dir('camayoc') {
     git 'https://github.com/quipucords/camayoc.git'
     sh '''\
-        git checkout issues/333
+        git checkout issues/336
         python3 --version
     	python3 -m pipenv run make install-dev
     '''.stripIndent()
@@ -128,17 +137,25 @@ def setup_camayoc() {
 
     // Setup ssh credentials
     withCredentials([file(credentialsId: '4c692211-c5e1-4354-8e1b-b9d0276c29d9', variable: 'ID_JENKINS_RSA')]) {
-        String ssh_keyfile_string = "${workspace}/sshkeys/id_rsa"
+        String ssh_keyfile_string = "${workspace}/server/volumes/sshkeys/id_rsa"
         ssh_keyfile = ssh_keyfile_string.replace("/", "\\/")
         sh """\
             mkdir -p "${workspace}"/sshkeys
-            cp "${ID_JENKINS_RSA}" "${ssh_keyfile_string}"
-            chmod 0600 "${ssh_keyfile_string}"
-            cat "${ssh_keyfile_string}"
+            sudo cp "${ID_JENKINS_RSA}" "${ssh_keyfile_string}"
+            sudo chown -R jenkins:jenkins "${workspace}"
+            sudo chmod -R 0600 "${ssh_keyfile_string}"
+            sudo cat "${ssh_keyfile_string}"
             ## Edit ssh location in config file
             sed -i "s/{jenkins_ssh_file}/\\/sshkeys\\/id_rsa/" camayoc/camayoc/config.yaml
         """.stripIndent()
     }//end withCredentials
+
+    // Add file location
+    String isolated_fs_string = "${workspace}/server/volumes/sshkeys/"
+    isolated_fs_path = isolated_fs_string.replace("/", "\\/")
+    sh """\
+        sed -i "s/{isolated_fs_placeholder}/${isolated_fs_path}/" camayoc/camayoc/config.yaml
+    """.stripIndent()
 }//end def
 
 
