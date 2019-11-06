@@ -35,12 +35,12 @@ stages {
         }//end steps
     }//end stage
 
-//    stage('Run Camayoc API Tests') {
-//        steps {
-//            sh 'sleep 30'
-//            runCamayocTest 'api'
-//        }//end steps
-//    }//end stage
+    stage('Run Camayoc API Tests') {
+        steps {
+            sh 'sleep 30'
+            runCamayocTest 'api'
+        }//end steps
+    }//end stage
 
     stage('Setup Camayoc') {
         steps {
@@ -142,7 +142,6 @@ def setup_camayoc() {
         sh """\
             mkdir -p "${workspace}"/sshkeys
             sudo cp "${ID_JENKINS_RSA}" "${ssh_keyfile_string}"
-            sudo chown -R jenkins:jenkins "${ssh_keyfile_string}"
             sudo chown -R jenkins:jenkins "${workspace}"
             sudo chmod -R 0600 "${ssh_keyfile_string}"
             sudo cat "${ssh_keyfile_string}"
