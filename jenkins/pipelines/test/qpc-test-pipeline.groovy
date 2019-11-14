@@ -35,25 +35,23 @@ stages {
         }//end steps
     }//end stage
 
-    stage('Run Camayoc API Tests') {
-        steps {
-            sh 'sleep 30'
-            runCamayocTest 'api'
-        }//end steps
-    }//end stage
-
     stage('Setup Camayoc') {
         steps {
             setup_camayoc()
         }//end steps
     }//end stage
+   stage('Run Camayoc CLI Tests') {
+       steps {
+           runCamayocTest 'cli'
+       }//end steps
+   }//end stage
 
-    stage('Run Camayoc CLI Tests') {
-        steps {
-            runCamayocTest 'cli'
-        }//end steps
-    }//end stage
-
+   stage('Run Camayoc API Tests') {
+       steps {
+           sh 'sleep 30'
+           runCamayocTest 'api'
+       }//end steps
+   }//end stage
 //    stage('Run Camayoc chrome Tests') {
 //        steps {
 //            runCamayocUITest 'chrome'
@@ -113,7 +111,6 @@ def setup_camayoc() {
    dir('camayoc') {
     git 'https://github.com/quipucords/camayoc.git'
     sh '''\
-        git checkout issues/336
         python3 --version
     	python3 -m pipenv run make install-dev
     '''.stripIndent()
@@ -243,3 +240,4 @@ def runCamayocUITest(browser) {
         }//end dir
     }//end sshagent
 }//end def
+
