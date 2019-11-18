@@ -7,10 +7,10 @@ environment {
 
 parameters {
     string(defaultValue: "master", description: 'What version?', name: 'version_name')
-    choice(choices: ['rhel7-os', 'rhel8-os'], description: "Node OS", name: 'node_os')
+    choice(choices: ['rhel8-os'], description: "Node OS", name: 'node_os')
     choice(choices: ['branch', 'tag'], description: "Branch or Tag?", name: 'version_type')
-    choice(choices: ['0.9.0', '0.9.1'], description: "Server Version", name: 'server_install_version')
-    choice(choices: ['0.9.0', '0.9.1'], description: "CLI Version", name: 'cli_install_version')
+    choice(choices: ['0.9.1'], description: "Server Version", name: 'server_install_version')
+    choice(choices: ['0.9.1'], description: "CLI Version", name: 'cli_install_version')
 }
 
 stages {
@@ -31,7 +31,7 @@ stages {
 
     stage('Install') {
         steps {
-            qpc_tools_install()
+            dsc_tools_install()
         }//end steps
     }//end stage
 
@@ -96,6 +96,25 @@ def qpc_tools_install() {
     sh "sudo qpc-tools server install --version ${params.server_install_version} --password qpcpassw0rd --db-password pass --home-dir ${workspace}"
 }//end def
 
+def dsc_tools_install() {
+    // Configure Repo
+    configFileProvider([configFile(fileId:
+    '5fc20406-111a-4c2c-9b4b-e055f85a226f', targetLocation: 'rhel8-dsc-custom.repo')]) {
+        sh 'sudo cp rhel8-dsc-custom.repo /etc/yum.repos.d/'
+        sh 'sudo yum -y install discovery-tools'
+    }//end configfile
+    sh "pwd"
+    sh "ls -lah"
+    sh 'sudo podman pull postgres:9.6.10'
+    // Install CLI
+    sh "sudo dsc-tools cli install --home-dir ${workspace}"
+    // Install Server
+
+    withCredentials([usernamePassword(credentialsId: 'test-account', passwordVariable: 'pass', usernameVariable: 'user')]) {
+        sh "sudo dsc-tools server install --password qpcpassw0rd --db-password pass --home-dir ${workspace} --registry-user $user --registry-password $pass"
+    }// end withCredentials
+    sh 'export CAMAYOC_CLIENT_CMD="dsc"'
+}//end def
 
 def setupDocker() {
     sh """\
