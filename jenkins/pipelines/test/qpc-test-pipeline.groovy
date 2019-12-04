@@ -6,6 +6,7 @@ environment {
 }
 
 parameters {
+    choice(choices: ['qpc', 'dsc'], description: "Project (upstream vs downstream)", name: 'project')
     string(defaultValue: "master", description: 'What version?', name: 'version_name')
     choice(choices: ['rhel8-os'], description: "Node OS", name: 'node_os')
     choice(choices: ['branch', 'tag'], description: "Branch or Tag?", name: 'version_type')
@@ -16,7 +17,7 @@ parameters {
 stages {
     stage('Build Info') {
         steps {
-            echo "Version: ${params.version_name}\nVersion Type: ${params.version_type}\nCommit: ${env.GIT_COMMIT}\n\nNode OS: ${env.node_os}\n\nServer Install Version: ${params.server_install_version}\nCLI Install Version: ${params.cli_install_version}"
+            echo "Project: ${params.project}\nVersion: ${params.version_name}\nVersion Type: ${params.version_type}\nCommit: ${env.GIT_COMMIT}\n\nNode OS: ${env.node_os}\n\nServer Install Version: ${params.server_install_version}\nCLI Install Version: ${params.cli_install_version}"
             sh 'cat /etc/redhat-release'
         }
     }
@@ -29,11 +30,22 @@ stages {
         }//end steps
     }//end stage
 
-    stage('Install') {
-        steps {
-            dsc_tools_install()
-            //qpc_tools_install()
-        }//end steps
+    stage('Install Quipucords') {
+       when {
+           expression { params.project == 'qpc' }
+       }// end quipucords when
+       steps {
+           qpc_tools_install()
+       }// end quipucords steps
+    }//end stage
+
+    stage('Install Discovery') {
+       when {
+           expression { params.project == 'dsc' }
+       }// end discovery when
+       steps {
+           dsc_tools_install()
+       }// end discovery steps
     }//end stage
 
     stage('Setup Camayoc') {
@@ -137,7 +149,7 @@ def setup_camayoc() {
    dir('camayoc') {
     git 'https://github.com/quipucords/camayoc.git'
     sh '''\
-        git checkout dsc-automation-testing
+        ## git checkout dsc-automation-testing
         python3 --version
     	python3 -m pipenv run make install-dev
     '''.stripIndent()
@@ -224,11 +236,8 @@ def runCamayocTest(testset) {
         sh 'echo $CAMAYOC_CLIENT_CMD'
         sh 'sudo cat /etc/passwd'
         sh 'ps aux | grep postgres'
-        sh "ls -l ${workspace}/db/volume/data/"
-        sh "ls -al ${workspace}/db/volume/data/userdata/global/pg_filenode.map"
-
         sh """
-            export CAMAYOC_CLIENT_CMD='dsc'
+            export CAMAYOC_CLIENT_CMD='${params.project}'
             set +e
             export XDG_CONFIG_HOME=\$(pwd)
             echo \$XDG_CONFIG_HOME
@@ -240,8 +249,6 @@ def runCamayocTest(testset) {
         sh 'ls -la'
         echo "$testset-junit.xml"
         sh "cat $testset-junit.xml"
-
-        sh "cat ${workspace}/server/volumes/log/discovery-server.log"
 
         archiveArtifacts "$testset-junit.xml"
         junit "$testset-junit.xml"
