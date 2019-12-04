@@ -32,6 +32,7 @@ stages {
     stage('Install') {
         steps {
             dsc_tools_install()
+            //qpc_tools_install()
         }//end steps
     }//end stage
 
@@ -84,8 +85,13 @@ def install_deps() {
 
 def qpc_tools_install() {
     echo "Install Server and CLI using qpc-tools"
+    // Configure Repo
+    configFileProvider([configFile(fileId:
+    '5fc20406-111a-4c2c-9b4b-e055f85a226f', targetLocation: 'rhel8-dsc-custom.repo')]) {
+        sh 'sudo cp rhel8-dsc-custom.repo /etc/yum.repos.d/'
+        sh 'sudo dnf install -y https://github.com/quipucords/qpc-tools/releases/latest/download/qpc-tools.el8.noarch.rpm'
+    }//end configfile
     // Install qpc-tools (break into own function?)
-    sh 'sudo dnf install -y https://github.com/quipucords/qpc-tools/releases/latest/download/qpc-tools.el8.noarch.rpm'
 
     sh "pwd"
     sh "ls -lah"
@@ -105,7 +111,7 @@ def dsc_tools_install() {
     }//end configfile
     sh "pwd"
     sh "ls -lah"
-    sh 'sudo podman pull postgres:9.6.10'
+    //sh 'sudo podman pull postgres:9.6.10'
     // Install CLI
     sh "sudo dsc-tools cli install --home-dir ${workspace}"
     // Install Server
@@ -113,7 +119,8 @@ def dsc_tools_install() {
     withCredentials([usernamePassword(credentialsId: 'test-account', passwordVariable: 'pass', usernameVariable: 'user')]) {
         sh "sudo dsc-tools server install --password qpcpassw0rd --db-password pass --home-dir ${workspace} --registry-user $user --registry-password $pass"
     }// end withCredentials
-    sh 'export CAMAYOC_CLIENT_CMD="dsc"'
+
+
 }//end def
 
 def setupDocker() {
@@ -130,6 +137,7 @@ def setup_camayoc() {
    dir('camayoc') {
     git 'https://github.com/quipucords/camayoc.git'
     sh '''\
+        git checkout dsc-automation-testing
         python3 --version
     	python3 -m pipenv run make install-dev
     '''.stripIndent()
@@ -210,9 +218,17 @@ def runCamayocTest(testset) {
 
     sh 'ls -lah'
     sh 'pwd'
+
     sshagent(['390bdc1f-73c6-457e-81de-9e794478e0e']) {
         dir('camayoc') {
+        sh 'echo $CAMAYOC_CLIENT_CMD'
+        sh 'sudo cat /etc/passwd'
+        sh 'ps aux | grep postgres'
+        sh "ls -l ${workspace}/db/volume/data/"
+        sh "ls -al ${workspace}/db/volume/data/userdata/global/pg_filenode.map"
+
         sh """
+            export CAMAYOC_CLIENT_CMD='dsc'
             set +e
             export XDG_CONFIG_HOME=\$(pwd)
             echo \$XDG_CONFIG_HOME
@@ -224,8 +240,10 @@ def runCamayocTest(testset) {
         sh 'ls -la'
         echo "$testset-junit.xml"
         sh "cat $testset-junit.xml"
-        archiveArtifacts "$testset-junit.xml"
 
+        sh "cat ${workspace}/server/volumes/log/discovery-server.log"
+
+        archiveArtifacts "$testset-junit.xml"
         junit "$testset-junit.xml"
         }//end dir
     }//end sshagent
