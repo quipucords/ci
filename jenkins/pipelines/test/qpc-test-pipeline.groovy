@@ -6,17 +6,18 @@ environment {
 }
 
 parameters {
+    choice(choices: ['qpc', 'dsc'], description: "Project (upstream vs downstream)", name: 'project')
     string(defaultValue: "master", description: 'What version?', name: 'version_name')
-    choice(choices: ['rhel7-os', 'rhel8-os'], description: "Node OS", name: 'node_os')
+    choice(choices: ['rhel8-os'], description: "Node OS", name: 'node_os')
     choice(choices: ['branch', 'tag'], description: "Branch or Tag?", name: 'version_type')
-    choice(choices: ['0.9.0', '0.9.1'], description: "Server Version", name: 'server_install_version')
-    choice(choices: ['0.9.0', '0.9.1'], description: "CLI Version", name: 'cli_install_version')
+    choice(choices: ['0.9.1'], description: "Server Version", name: 'server_install_version')
+    choice(choices: ['0.9.1'], description: "CLI Version", name: 'cli_install_version')
 }
 
 stages {
     stage('Build Info') {
         steps {
-            echo "Version: ${params.version_name}\nVersion Type: ${params.version_type}\nCommit: ${env.GIT_COMMIT}\n\nNode OS: ${env.node_os}\n\nServer Install Version: ${params.server_install_version}\nCLI Install Version: ${params.cli_install_version}"
+            echo "Project: ${params.project}\nVersion: ${params.version_name}\nVersion Type: ${params.version_type}\nCommit: ${env.GIT_COMMIT}\n\nNode OS: ${env.node_os}\n\nServer Install Version: ${params.server_install_version}\nCLI Install Version: ${params.cli_install_version}"
             sh 'cat /etc/redhat-release'
         }
     }
@@ -24,15 +25,26 @@ stages {
     stage('Setup System') {
     	steps {
             install_deps()
-            setupDocker()
             setupScanUsers()
         }//end steps
     }//end stage
 
-    stage('Install') {
-        steps {
-            qpc_tools_install()
-        }//end steps
+    stage('Install Quipucords') {
+       when {
+           expression { params.project == 'qpc' }
+       }// end quipucords when
+       steps {
+           qpc_tools_install()
+       }// end quipucords steps
+    }//end stage
+
+    stage('Install Discovery') {
+       when {
+           expression { params.project == 'dsc' }
+       }// end discovery when
+       steps {
+           dsc_tools_install()
+       }// end discovery steps
     }//end stage
 
     stage('Setup Camayoc') {
@@ -52,6 +64,8 @@ stages {
            runCamayocTest 'api'
        }//end steps
    }//end stage
+
+//  Disabled UI Tests until they are all updated and working.
 //    stage('Run Camayoc chrome Tests') {
 //        steps {
 //            runCamayocUITest 'chrome'
@@ -73,8 +87,6 @@ stages {
 def install_deps() {
     configFileProvider([configFile(fileId:
     '0f157b1a-7068-4c75-a672-3b1b90f97ddd', targetLocation: 'rhel7-custom.repo')]) {
-	    //sh 'sudo yum update -y'
-        //sh 'sudo yum -y install python36 python36-pip ansible podman'
         sh 'sudo yum -y install python3 python3-pip ansible podman'
         sh 'python3 -m pip install pipenv --user'
         sh 'sudo cat /etc/containers/registries.conf'
@@ -84,8 +96,12 @@ def install_deps() {
 
 def qpc_tools_install() {
     echo "Install Server and CLI using qpc-tools"
-    // Install qpc-tools (break into own function?)
-    sh 'sudo dnf install -y https://github.com/quipucords/qpc-tools/releases/latest/download/qpc-tools.el8.noarch.rpm'
+    // Configure Repo
+    configFileProvider([configFile(fileId:
+    '5fc20406-111a-4c2c-9b4b-e055f85a226f', targetLocation: 'rhel8-dsc-custom.repo')]) {
+        sh 'sudo cp rhel8-dsc-custom.repo /etc/yum.repos.d/'
+        sh 'sudo dnf install -y https://github.com/quipucords/qpc-tools/releases/latest/download/qpc-tools.el8.noarch.rpm'
+    }//end configfile
 
     sh "pwd"
     sh "ls -lah"
@@ -96,14 +112,21 @@ def qpc_tools_install() {
     sh "sudo qpc-tools server install --version ${params.server_install_version} --password qpcpassw0rd --db-password pass --home-dir ${workspace}"
 }//end def
 
-
-def setupDocker() {
-    sh """\
-    echo "OPTIONS=--log-driver=journald" > docker.conf
-    echo "DOCKER_CERT_PATH=/etc/docker" >> docker.conf
-    echo "INSECURE_REGISTRY=\\"--insecure-registry \${DOCKER_REGISTRY}\\"" >> docker.conf
-    sudo cp docker.conf /etc/sysconfig/docker
-    """.stripIndent()
+def dsc_tools_install() {
+    // Configure Repo
+    configFileProvider([configFile(fileId:
+    '5fc20406-111a-4c2c-9b4b-e055f85a226f', targetLocation: 'rhel8-dsc-custom.repo')]) {
+        sh 'sudo cp rhel8-dsc-custom.repo /etc/yum.repos.d/'
+        sh 'sudo yum -y install discovery-tools'
+    }//end configfile
+    sh "pwd"
+    sh "ls -lah"
+    // Install CLI
+    sh "sudo dsc-tools cli install --home-dir ${workspace}"
+    // Install Server
+    withCredentials([usernamePassword(credentialsId: 'test-account', passwordVariable: 'pass', usernameVariable: 'user')]) {
+        sh "sudo dsc-tools server install --password qpcpassw0rd --db-password pass --home-dir ${workspace} --registry-user $user --registry-password $pass"
+    }// end withCredentials
 }//end def
 
 def setup_camayoc() {
@@ -139,7 +162,7 @@ def setup_camayoc() {
         sh """\
             mkdir -p "${workspace}"/sshkeys
             sudo cp "${ID_JENKINS_RSA}" "${ssh_keyfile_string}"
-            sudo chown -R jenkins:jenkins "${workspace}"
+            sudo chown -R jenkins:jenkins "${workspace}"/server/volumes/sshkeys
             sudo chmod -R 0600 "${ssh_keyfile_string}"
             sudo cat "${ssh_keyfile_string}"
             ## Edit ssh location in config file
@@ -193,7 +216,10 @@ def runCamayocTest(testset) {
     sh 'pwd'
     sshagent(['390bdc1f-73c6-457e-81de-9e794478e0e']) {
         dir('camayoc') {
+        sh 'echo $CAMAYOC_CLIENT_CMD'
+        sh 'ps aux | grep postgres'
         sh """
+            export CAMAYOC_CLIENT_CMD='${params.project}'
             set +e
             export XDG_CONFIG_HOME=\$(pwd)
             echo \$XDG_CONFIG_HOME
@@ -205,8 +231,8 @@ def runCamayocTest(testset) {
         sh 'ls -la'
         echo "$testset-junit.xml"
         sh "cat $testset-junit.xml"
-        archiveArtifacts "$testset-junit.xml"
 
+        archiveArtifacts "$testset-junit.xml"
         junit "$testset-junit.xml"
         }//end dir
     }//end sshagent
