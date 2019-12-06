@@ -131,8 +131,6 @@ def dsc_tools_install() {
     withCredentials([usernamePassword(credentialsId: 'test-account', passwordVariable: 'pass', usernameVariable: 'user')]) {
         sh "sudo dsc-tools server install --password qpcpassw0rd --db-password pass --home-dir ${workspace} --registry-user $user --registry-password $pass"
     }// end withCredentials
-
-
 }//end def
 
 def setupDocker() {
@@ -178,7 +176,7 @@ def setup_camayoc() {
         sh """\
             mkdir -p "${workspace}"/sshkeys
             sudo cp "${ID_JENKINS_RSA}" "${ssh_keyfile_string}"
-            sudo chown -R jenkins:jenkins "${workspace}"
+            sudo chown -R jenkins:jenkins "${workspace}"/server/volumes/sshkeys
             sudo chmod -R 0600 "${ssh_keyfile_string}"
             sudo cat "${ssh_keyfile_string}"
             ## Edit ssh location in config file
