@@ -214,11 +214,9 @@ def runCamayocTest(testset) {
 
     sh 'ls -lah'
     sh 'pwd'
-
     sshagent(['390bdc1f-73c6-457e-81de-9e794478e0e']) {
         dir('camayoc') {
         sh 'echo $CAMAYOC_CLIENT_CMD'
-        sh 'sudo cat /etc/passwd'
         sh 'ps aux | grep postgres'
         sh """
             export CAMAYOC_CLIENT_CMD='${params.project}'
