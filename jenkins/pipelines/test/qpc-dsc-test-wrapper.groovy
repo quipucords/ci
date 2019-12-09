@@ -13,7 +13,7 @@ pipeline {
     stages {
         stage("Build Info") {
             steps {
-                echo "Version: ${params.version_name}\nVersion Type: ${params.version_type}"
+                echo "Node OS: ${params.node_os}\n\nQuipucords Server Version: ${params.qpc_server_install_version}\nQuipucords CLI Version: ${params.qpc_cli_install_version}\n\nDiscovery Server Version: ${params.dsc_server_install_version}\nDiscovery CLI Version: ${params.dsc_cli_install_version}"
             }
         }
         stage ('Run Tests') {
