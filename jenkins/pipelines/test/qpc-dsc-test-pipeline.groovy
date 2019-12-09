@@ -10,8 +10,8 @@ parameters {
     string(defaultValue: "master", description: 'What version?', name: 'version_name')
     choice(choices: ['rhel8-os'], description: "Node OS", name: 'node_os')
     choice(choices: ['branch', 'tag'], description: "Branch or Tag?", name: 'version_type')
-    choice(choices: ['0.9.1'], description: "Server Version", name: 'server_install_version')
-    choice(choices: ['0.9.1'], description: "CLI Version", name: 'cli_install_version')
+    string(defaultValue: '0.9.1', description: "Server Version", name: 'server_install_version')
+    string(defaultValue: '0.9.1', description: "CLI Version", name: 'cli_install_version')
 }
 
 stages {
