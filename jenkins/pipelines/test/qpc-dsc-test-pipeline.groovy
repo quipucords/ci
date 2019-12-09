@@ -107,7 +107,7 @@ def qpc_tools_install() {
     sh "ls -lah"
     sh 'sudo podman pull postgres:9.6.10'
     // Install CLI
-    sh "sudo qpc-tools cli install --version ${params.server_install_version} --home-dir ${workspace}"
+    sh "sudo qpc-tools cli install --version ${params.cli_install_version} --home-dir ${workspace}"
     // Install Server
     sh "sudo qpc-tools server install --version ${params.server_install_version} --password qpcpassw0rd --db-password pass --home-dir ${workspace}"
 }//end def
