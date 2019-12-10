@@ -29,8 +29,6 @@ pipeline {
                         build job: 'qpc-dsc-test-pipeline', propagate: false, parameters:[
                             string(name: 'project',value: "qpc"),
                             string(name: 'node_os',value: "${node_os}"),
-                            //string(name: 'version_name',value: "${version_name}"),
-                            //string(name: 'version_type',value: "${version_type}")
                             string(name: 'server_install_version',value: "${qpc_server_install_version}"),
                             string(name: 'cli_install_version',value: "${qpc_cli_install_version}")
                         ]
@@ -44,11 +42,33 @@ pipeline {
                         build job: 'qpc-dsc-test-pipeline2', propagate: false, parameters:[
                             string(name: 'project',value: "dsc"),
                             string(name: 'node_os',value: "${node_os}"),
-                            //string(name: 'version_type',value: "${version_type}")
-                            //string(name: 'version_type',value: "${version_type}")
                             string(name: 'server_install_version',value: "${dsc_server_install_version}"),
                             string(name: 'cli_install_version',value: "${dsc_cli_install_version}")
                         ]
+                    }
+                }
+            }
+        }
+        stage ('Collect Tests') {
+                parallel {
+                stage ('Collect Quipucords Test Results') {
+                    when {
+                        expression { params.projects == 'qpc' || params.projects == 'both' }
+                    }
+                    steps {
+                        copyArtifacts filter: 'qpc-*-junit.xml', fingerprintArtifacts: true, projectName: "qpc-dsc-test-pipeline", selector: lastCompleted()
+                        archiveArtifacts "qpc-*-junit.xml"
+                        junit "qpc-*-junit.xml"
+                    }
+                }
+                stage ('Collect Discovery Test Results') {
+                    when {
+                        expression { params.projects == 'dsc' || params.projects == 'both' }
+                    }
+                    steps {
+                        copyArtifacts filter: 'dsc-*-junit.xml', fingerprintArtifacts: true, projectName: "qpc-dsc-test-pipeline2", selector: lastCompleted()
+                        archiveArtifacts "dsc-*-junit.xml"
+                        junit "dsc-*-junit.xml"
                     }
                 }
             }
