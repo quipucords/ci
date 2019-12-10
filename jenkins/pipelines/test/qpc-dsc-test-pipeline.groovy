@@ -7,9 +7,7 @@ environment {
 
 parameters {
     choice(choices: ['qpc', 'dsc'], description: "Project (upstream vs downstream)", name: 'project')
-    string(defaultValue: "master", description: 'What version?', name: 'version_name')
     choice(choices: ['rhel8-os'], description: "Node OS", name: 'node_os')
-    choice(choices: ['branch', 'tag'], description: "Branch or Tag?", name: 'version_type')
     string(defaultValue: '0.9.1', description: "Server Version", name: 'server_install_version')
     string(defaultValue: '0.9.1', description: "CLI Version", name: 'cli_install_version')
 }
@@ -17,7 +15,7 @@ parameters {
 stages {
     stage('Build Info') {
         steps {
-            echo "Project: ${params.project}\nVersion: ${params.version_name}\nVersion Type: ${params.version_type}\nCommit: ${env.GIT_COMMIT}\n\nNode OS: ${env.node_os}\n\nServer Install Version: ${params.server_install_version}\nCLI Install Version: ${params.cli_install_version}"
+            echo "Project: ${params.project}\nCommit: ${env.GIT_COMMIT}\n\nNode OS: ${env.node_os}\n\nServer Install Version: ${params.server_install_version}\nCLI Install Version: ${params.cli_install_version}"
             sh 'cat /etc/redhat-release'
         }
     }
