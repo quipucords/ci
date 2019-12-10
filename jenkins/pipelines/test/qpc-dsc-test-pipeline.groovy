@@ -222,16 +222,16 @@ def runCamayocTest(testset) {
             export XDG_CONFIG_HOME=\$(pwd)
             echo \$XDG_CONFIG_HOME
             cat \$XDG_CONFIG_HOME/camayoc/config.yaml
-            python3 -m pipenv run py.test -c pytest.ini -l -ra -s -vvv --junit-xml $testset-junit.xml --rootdir camayoc/tests/qpc camayoc/tests/qpc/$testset
+            python3 -m pipenv run py.test -c pytest.ini -l -ra -s -vvv --junit-xml ${params.project}-$testset-junit.xml --rootdir camayoc/tests/qpc camayoc/tests/qpc/$testset
             set -e
             # tar -cvzf test-$testset-logs.tar.gz log
         """.stripIndent()
         sh 'ls -la'
-        echo "$testset-junit.xml"
-        sh "cat $testset-junit.xml"
+        echo "${params.project}-$testset-junit.xml"
+        sh "cat ${params.project}-$testset-junit.xml"
 
-        archiveArtifacts "$testset-junit.xml"
-        junit "$testset-junit.xml"
+        archiveArtifacts "${params.project}-$testset-junit.xml"
+        junit "${params.project}-$testset-junit.xml"
         }//end dir
     }//end sshagent
     //archiveArtifacts "test-$testset-logs.tar.gz"
