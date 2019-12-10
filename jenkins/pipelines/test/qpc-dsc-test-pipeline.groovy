@@ -7,17 +7,15 @@ environment {
 
 parameters {
     choice(choices: ['qpc', 'dsc'], description: "Project (upstream vs downstream)", name: 'project')
-    string(defaultValue: "master", description: 'What version?', name: 'version_name')
     choice(choices: ['rhel8-os'], description: "Node OS", name: 'node_os')
-    choice(choices: ['branch', 'tag'], description: "Branch or Tag?", name: 'version_type')
-    choice(choices: ['0.9.1'], description: "Server Version", name: 'server_install_version')
-    choice(choices: ['0.9.1'], description: "CLI Version", name: 'cli_install_version')
+    string(defaultValue: '0.9.1', description: "Server Version", name: 'server_install_version')
+    string(defaultValue: '0.9.1', description: "CLI Version", name: 'cli_install_version')
 }
 
 stages {
     stage('Build Info') {
         steps {
-            echo "Project: ${params.project}\nVersion: ${params.version_name}\nVersion Type: ${params.version_type}\nCommit: ${env.GIT_COMMIT}\n\nNode OS: ${env.node_os}\n\nServer Install Version: ${params.server_install_version}\nCLI Install Version: ${params.cli_install_version}"
+            echo "Project: ${params.project}\nCommit: ${env.GIT_COMMIT}\n\nNode OS: ${env.node_os}\n\nServer Install Version: ${params.server_install_version}\nCLI Install Version: ${params.cli_install_version}"
             sh 'cat /etc/redhat-release'
         }
     }
@@ -107,7 +105,7 @@ def qpc_tools_install() {
     sh "ls -lah"
     sh 'sudo podman pull postgres:9.6.10'
     // Install CLI
-    sh "sudo qpc-tools cli install --version ${params.server_install_version} --home-dir ${workspace}"
+    sh "sudo qpc-tools cli install --version ${params.cli_install_version} --home-dir ${workspace}"
     // Install Server
     sh "sudo qpc-tools server install --version ${params.server_install_version} --password qpcpassw0rd --db-password pass --home-dir ${workspace}"
 }//end def
@@ -224,16 +222,16 @@ def runCamayocTest(testset) {
             export XDG_CONFIG_HOME=\$(pwd)
             echo \$XDG_CONFIG_HOME
             cat \$XDG_CONFIG_HOME/camayoc/config.yaml
-            python3 -m pipenv run py.test -c pytest.ini -l -ra -s -vvv --junit-xml $testset-junit.xml --rootdir camayoc/tests/qpc camayoc/tests/qpc/$testset
+            python3 -m pipenv run py.test -c pytest.ini -l -ra -s -vvv --junit-xml ${params.project}-$testset-junit.xml --rootdir camayoc/tests/qpc camayoc/tests/qpc/$testset
             set -e
             # tar -cvzf test-$testset-logs.tar.gz log
         """.stripIndent()
         sh 'ls -la'
-        echo "$testset-junit.xml"
-        sh "cat $testset-junit.xml"
+        echo "${params.project}-$testset-junit.xml"
+        sh "cat ${params.project}-$testset-junit.xml"
 
-        archiveArtifacts "$testset-junit.xml"
-        junit "$testset-junit.xml"
+        archiveArtifacts "${params.project}-$testset-junit.xml"
+        junit "${params.project}-$testset-junit.xml"
         }//end dir
     }//end sshagent
     //archiveArtifacts "test-$testset-logs.tar.gz"
