@@ -63,19 +63,14 @@ stages {
        }//end steps
    }//end stage
 
-//  Disabled UI Tests until they are all updated and working.
-//    stage('Run Camayoc chrome Tests') {
-//        steps {
-//            runCamayocUITest 'chrome'
-//        }//end steps
-//    }//end stage
-//
-//    stage('Run Camayoc firefox Tests') {
-//        steps {
-//            runCamayocUITest 'firefox'
-//        }//end steps
-//    }//end stage
-    }
+   stage('Archive Logs') {
+       steps {
+           // Archive Server Logs
+           sh "tar -cvzf ${params.project}-logs.tar.gz -C ${workspace}/server/volumes/log/ ."
+           archiveArtifacts "${params.project}-logs.tar.gz"
+       }//end steps
+   }//end stage
+}
 }
 
 
@@ -230,6 +225,7 @@ def runCamayocTest(testset) {
         echo "${params.project}-$testset-junit.xml"
         sh "cat ${params.project}-$testset-junit.xml"
 
+        // Archive and Load Test Results
         archiveArtifacts "${params.project}-$testset-junit.xml"
         junit "${params.project}-$testset-junit.xml"
         }//end dir
@@ -259,6 +255,7 @@ def runCamayocUITest(browser) {
             """.stripIndent()
 
             echo 'Archiving artifacts'
+
             //archiveArtifacts "test-ui-$browser-logs.tar.gz"
             junit "ui-$browser-junit.xml"
         }//end dir
