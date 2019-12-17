@@ -8,8 +8,8 @@ environment {
 parameters {
     choice(choices: ['qpc', 'dsc'], description: "Project (upstream vs downstream)", name: 'project')
     choice(choices: ['rhel8-os'], description: "Node OS", name: 'node_os')
-    string(defaultValue: '0.9.1', description: "Server Version", name: 'server_install_version')
-    string(defaultValue: '0.9.1', description: "CLI Version", name: 'cli_install_version')
+    string(defaultValue: '0.9.2', description: "Server Version", name: 'server_install_version')
+    string(defaultValue: '0.9.3', description: "CLI Version", name: 'cli_install_version')
 }
 
 stages {
