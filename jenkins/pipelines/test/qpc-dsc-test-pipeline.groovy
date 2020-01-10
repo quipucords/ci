@@ -150,7 +150,8 @@ def setup_camayoc() {
             sh """
                 sudo ansible-playbook -vvv\
                 -e config_template="${workspace}/camayoc-config-template.yaml" \
-                -e config_location="${workspace}/camayoc/camayoc/config.yaml" \
+                -e config_dir="${workspace}/camayoc/camayoc/" \
+                -e config_file="config.yaml" \
                 -e server_ip="${OPENSTACK_PUBLIC_IP}" \
                 -e container_ssh_file=/sshkeys/id_rsa \
                 -e isolated_fs="${isolated_fs_string}" \
