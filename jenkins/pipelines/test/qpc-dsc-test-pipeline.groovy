@@ -127,6 +127,7 @@ def setup_camayoc() {
    dir('camayoc') {
     git 'https://github.com/quipucords/camayoc.git'
     sh '''\
+        git checkout issues/343
         python3 --version
     	python3 -m pipenv run make install-dev
     '''.stripIndent()
@@ -138,37 +139,27 @@ def setup_camayoc() {
         cp camayoc/pytest.ini .
     '''.stripIndent()
 
-    // Setup Camayoc Config File
-	configFileProvider([configFile(fileId: '62cf0ccc-220e-4177-9eab-f39701bff8d7', targetLocation: 'camayoc/camayoc/config.yaml')]) {
-        sh '''\
-            pwd
-            cat camayoc/camayoc/config.yaml
-            sed -i "s/{jenkins_slave_ip}/${OPENSTACK_PUBLIC_IP}/" camayoc/camayoc/config.yaml
-            cat camayoc/camayoc/config.yaml
-        '''.stripIndent()
-    }//end configfile
+    // Run config setup playbook
+	configFileProvider([configFile(fileId: '62cf0ccc-220e-4177-9eab-f39701bff8d7', targetLocation: 'camayoc-config-template.yaml')]) {
+        withCredentials([file(credentialsId: '4c692211-c5e1-4354-8e1b-b9d0276c29d9', variable: 'ID_JENKINS_RSA')]) {
+            // Define some path variables for ansible
+            String isolated_fs_string = "${workspace}/server/volumes/sshkeys/"
+            String ssh_keyfile_string = "${workspace}/server/volumes/sshkeys/id_rsa"
 
-    // Setup ssh credentials
-    withCredentials([file(credentialsId: '4c692211-c5e1-4354-8e1b-b9d0276c29d9', variable: 'ID_JENKINS_RSA')]) {
-        String ssh_keyfile_string = "${workspace}/server/volumes/sshkeys/id_rsa"
-        ssh_keyfile = ssh_keyfile_string.replace("/", "\\/")
-        sh """\
-            mkdir -p "${workspace}"/sshkeys
-            sudo cp "${ID_JENKINS_RSA}" "${ssh_keyfile_string}"
-            sudo chown -R jenkins:jenkins "${workspace}"/server/volumes/sshkeys
-            sudo chmod -R 0600 "${ssh_keyfile_string}"
-            sudo cat "${ssh_keyfile_string}"
-            ## Edit ssh location in config file
-            sed -i "s/{jenkins_ssh_file}/\\/sshkeys\\/id_rsa/" camayoc/camayoc/config.yaml
-        """.stripIndent()
-    }//end withCredentials
-
-    // Add file location
-    String isolated_fs_string = "${workspace}/server/volumes/sshkeys/"
-    isolated_fs_path = isolated_fs_string.replace("/", "\\/")
-    sh """\
-        sed -i "s/{isolated_fs_placeholder}/${isolated_fs_path}/" camayoc/camayoc/config.yaml
-    """.stripIndent()
+            // Run configure playbook
+            sh """
+                sudo ansible-playbook -vvv\
+                -e config_template="${workspace}/camayoc-config-template.yaml" \
+                -e config_location="${workspace}/camayoc/camayoc/config.yaml" \
+                -e server_ip="${OPENSTACK_PUBLIC_IP}" \
+                -e container_ssh_file=/sshkeys/id_rsa \
+                -e isolated_fs="${isolated_fs_string}" \
+                -e sshkeyfile="${ID_JENKINS_RSA}" \
+                -e volume_sshkeyfile="${ssh_keyfile_string}" \
+                -e isolated_fs_user=jenkins camayoc/scripts/configure-camayoc.yaml
+            """.stripIndent()
+        }//end withCredentials
+    }//end configFileProvider
 }//end def
 
 
