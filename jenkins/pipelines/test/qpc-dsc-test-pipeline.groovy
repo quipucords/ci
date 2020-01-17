@@ -127,7 +127,6 @@ def setup_camayoc() {
    dir('camayoc') {
     git 'https://github.com/quipucords/camayoc.git'
     sh '''\
-        git checkout issues/343
         python3 --version
     	python3 -m pipenv run make install-dev
     '''.stripIndent()
