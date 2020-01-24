@@ -1,2 +1,0 @@
-# Packages required to generate jobs
-jenkins-job-builder
