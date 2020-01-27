@@ -46,7 +46,7 @@ pipeline {
                     }//end when
                     steps {
                         script {
-                            dsc_job_infop = build(
+                            dsc_job_info = build(
                                 job: 'qpc-dsc-test-pipeline',
                                 propagate: false,
                                 parameters:[
