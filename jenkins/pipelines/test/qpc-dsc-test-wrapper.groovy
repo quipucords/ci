@@ -26,7 +26,7 @@ pipeline {
                         expression { params.projects == 'qpc' || params.projects == 'both' }
                     }//end when
                     steps {
-                        build job: 'qpc-dsc-test-pipeline-qpc', propagate: false, parameters:[
+                        build job: 'qpc-dsc-test-pipeline', propagate: false, parameters:[
                             string(name: 'project',value: "qpc"),
                             string(name: 'node_os',value: "${node_os}"),
                             string(name: 'server_install_version',value: "${qpc_server_install_version}"),
@@ -56,7 +56,7 @@ pipeline {
                         expression { params.projects == 'qpc' || params.projects == 'both' }
                     }
                     steps {
-                        copyArtifacts filter: 'qpc-*-junit.xml', fingerprintArtifacts: true, projectName: "qpc-dsc-test-pipeline-qpc", selector: lastCompleted()
+                        copyArtifacts filter: 'qpc-*-junit.xml', fingerprintArtifacts: true, projectName: "qpc-dsc-test-pipeline", selector: lastCompleted()
                         archiveArtifacts "qpc-*-junit.xml"
                         junit "qpc-*-junit.xml"
                     }
