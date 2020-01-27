@@ -26,12 +26,18 @@ pipeline {
                         expression { params.projects == 'qpc' || params.projects == 'both' }
                     }//end when
                     steps {
-                        build job: 'qpc-dsc-test-pipeline', propagate: false, parameters:[
-                            string(name: 'project',value: "qpc"),
-                            string(name: 'node_os',value: "${node_os}"),
-                            string(name: 'server_install_version',value: "${qpc_server_install_version}"),
-                            string(name: 'cli_install_version',value: "${qpc_cli_install_version}")
-                        ]
+                        script {
+                            qpc_job_info = build(
+                                job: 'qpc-dsc-test-pipeline',
+                                propagate: false,
+                                parameters:[
+                                    string(name: 'project',value: "qpc"),
+                                    string(name: 'node_os',value: "${node_os}"),
+                                    string(name: 'server_install_version',value: "${qpc_server_install_version}"),
+                                    string(name: 'cli_install_version',value: "${qpc_cli_install_version}")
+                                ]
+                            )
+                        }//end script
                     }//end steps
                 }//end stage
                 stage ('Test Discovery') {
@@ -39,16 +45,22 @@ pipeline {
                         expression { params.projects == 'dsc' || params.projects == 'both' }
                     }//end when
                     steps {
-                        build job: 'qpc-dsc-test-pipeline', propagate: false, parameters:[
-                            string(name: 'project',value: "dsc"),
-                            string(name: 'node_os',value: "${node_os}"),
-                            string(name: 'server_install_version',value: "${dsc_server_install_version}"),
-                            string(name: 'cli_install_version',value: "${dsc_cli_install_version}")
-                        ]
-                    }
-                }
-            }
-        }
+                        script {
+                            dsc_job_info = build(
+                                job: 'qpc-dsc-test-pipeline',
+                                propagate: false,
+                                parameters:[
+                                    string(name: 'project',value: "dsc"),
+                                    string(name: 'node_os',value: "${node_os}"),
+                                    string(name: 'server_install_version',value: "${dsc_server_install_version}"),
+                                    string(name: 'cli_install_version',value: "${dsc_cli_install_version}")
+                                ]
+                            )
+                        }//end script
+                    }//end steps
+                }//end stage
+            }//end parallel
+        }//end stage
         stage ('Collect Tests') {
                 parallel {
                 stage ('Collect Quipucords Test Results') {
@@ -56,7 +68,7 @@ pipeline {
                         expression { params.projects == 'qpc' || params.projects == 'both' }
                     }
                     steps {
-                        copyArtifacts filter: 'qpc-*-junit.xml', fingerprintArtifacts: true, projectName: "qpc-dsc-test-pipeline", selector: lastCompleted()
+                        copyArtifacts filter: 'qpc-*-junit.xml', fingerprintArtifacts: true, projectName: "qpc-dsc-test-pipeline", selector: specific("${qpc_job_info.number}")
                         archiveArtifacts "qpc-*-junit.xml"
                         junit "qpc-*-junit.xml"
                     }
@@ -66,7 +78,7 @@ pipeline {
                         expression { params.projects == 'dsc' || params.projects == 'both' }
                     }
                     steps {
-                        copyArtifacts filter: 'dsc-*-junit.xml', fingerprintArtifacts: true, projectName: "qpc-dsc-test-pipeline", selector: lastCompleted()
+                        copyArtifacts filter: 'dsc-*-junit.xml', fingerprintArtifacts: true, projectName: "qpc-dsc-test-pipeline", selector: specific("${dsc_job_info.number}")
                         archiveArtifacts "dsc-*-junit.xml"
                         junit "dsc-*-junit.xml"
                     }
