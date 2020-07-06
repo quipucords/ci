@@ -10,6 +10,7 @@ parameters {
     choice(choices: ['rhel8-os'], description: "Node OS", name: 'node_os')
     string(defaultValue: '0.9.2', description: "Server Version", name: 'server_install_version')
     string(defaultValue: '0.9.3', description: "CLI Version", name: 'cli_install_version')
+    string(defaultValue: '', description: "Optional Server Image", name: 'server_image')
 }
 
 stages {
@@ -73,6 +74,10 @@ stages {
 }
 }
 
+def install_dsc_server_cmd () {
+    cmd ""
+    return cmd
+}
 
 /////////////////////////
 //// Setup Functions ////
@@ -105,6 +110,14 @@ def qpc_tools_install() {
     sh "sudo qpc-tools server install --version ${params.server_install_version} --password qpcpassw0rd --db-password pass --home-dir ${workspace}"
 }//end def
 
+def dsc_server_install_cmd() {
+    cmd = "sudo dsc-tools server install --password qpcpassw0rd --db-password pass --home-dir ${workspace} --registry-user $user --registry-password $pass --version ${params.server_install_version}"
+    if ( params.server_image != '' ) {
+        cmd = cmd + " --server-image-name=${params.server_image} --advanced podman_tls_verify=false"
+    }
+    return cmd
+}
+
 def dsc_tools_install() {
     // Configure Repo
     configFileProvider([configFile(fileId:
@@ -118,7 +131,12 @@ def dsc_tools_install() {
     sh "sudo dsc-tools cli install --home-dir ${workspace}"
     // Install Server
     withCredentials([usernamePassword(credentialsId: 'test-account', passwordVariable: 'pass', usernameVariable: 'user')]) {
+
+
         sh "sudo dsc-tools server install --password qpcpassw0rd --db-password pass --home-dir ${workspace} --registry-user $user --registry-password $pass"
+
+
+
     }// end withCredentials
 }//end def
 
@@ -126,6 +144,7 @@ def setup_camayoc() {
     // Pull and Install Camayoc
    dir('camayoc') {
     git 'https://github.com/quipucords/camayoc.git'
+    sh 'git checkout remove-flaky-tests'
     sh '''\
         python3 --version
     	python3 -m pipenv run make install-dev
