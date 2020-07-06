@@ -74,10 +74,6 @@ stages {
 }
 }
 
-def install_dsc_server_cmd () {
-    cmd ""
-    return cmd
-}
 
 /////////////////////////
 //// Setup Functions ////
@@ -133,7 +129,7 @@ def dsc_tools_install() {
     withCredentials([usernamePassword(credentialsId: 'test-account', passwordVariable: 'pass', usernameVariable: 'user')]) {
 
 
-        sh "sudo dsc-tools server install --password qpcpassw0rd --db-password pass --home-dir ${workspace} --registry-user $user --registry-password $pass"
+        sh dsc_server_install_cmd()
 
 
 
@@ -144,7 +140,6 @@ def setup_camayoc() {
     // Pull and Install Camayoc
    dir('camayoc') {
     git 'https://github.com/quipucords/camayoc.git'
-    sh 'git checkout remove-flaky-tests'
     sh '''\
         python3 --version
     	python3 -m pipenv run make install-dev
