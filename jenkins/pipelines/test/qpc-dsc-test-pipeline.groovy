@@ -127,12 +127,8 @@ def dsc_tools_install() {
     sh "sudo dsc-tools cli install --home-dir ${workspace}"
     // Install Server
     withCredentials([usernamePassword(credentialsId: 'test-account', passwordVariable: 'pass', usernameVariable: 'user')]) {
-
-
+        // Call the dsc_server_install_cmd to generate the install command
         sh dsc_server_install_cmd()
-
-
-
     }// end withCredentials
 }//end def
 
