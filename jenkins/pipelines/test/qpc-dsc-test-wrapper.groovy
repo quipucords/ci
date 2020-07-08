@@ -9,8 +9,8 @@ pipeline {
         string(defaultValue: '0.9.2', description: "Quipucords Server Version", name: 'qpc_server_install_version')
         string(defaultValue: '0.9.3', description: "QPC CLI Version", name: 'qpc_cli_install_version')
         // Discovery Params
-        string(defaultValue: '0.9.3', description: "Discovery Server Version", name: 'dsc_server_install_version')
-        string(defaultValue: '0.9.2', description: "DSC CLI Version", name: 'dsc_cli_install_version')
+        string(defaultValue: '0.9.2', description: "Discovery Server Version", name: 'dsc_server_install_version')
+        string(defaultValue: '0.9.3', description: "DSC CLI Version", name: 'dsc_cli_install_version')
     }
 
     stages {
