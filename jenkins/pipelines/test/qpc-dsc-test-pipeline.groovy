@@ -128,7 +128,9 @@ def dsc_tools_install() {
     // Install Server
     withCredentials([usernamePassword(credentialsId: 'test-account', passwordVariable: 'pass', usernameVariable: 'user')]) {
         // Call the dsc_server_install_cmd to generate the install command
-        sh dsc_server_install_cmd()
+        dsc_server_install_cmd()
+        sh "sudo podman images"
+        sh "sudo podman image inspect ${params.server_image}:${params.server_install_version}"
     }// end withCredentials
 }//end def
 
