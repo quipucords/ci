@@ -127,8 +127,12 @@ def dsc_tools_install() {
     sh "sudo dsc-tools cli install --version ${params.cli_install_version} --home-dir ${workspace}"
     // Install Server
     withCredentials([usernamePassword(credentialsId: 'test-account', passwordVariable: 'pass', usernameVariable: 'user')]) {
-        // Call the dsc_server_install_cmd to generate the install command
+        // Call the isntall command generated from dsc_server_install_cmd()
         sh dsc_server_install_cmd()
+        sh "sudo podman images"
+        if ( params.server_image != '' ) {
+            sh "sudo podman image inspect ${params.server_image}:${params.server_install_version}"
+        }
     }// end withCredentials
 }//end def
 
